@@ -31,11 +31,11 @@
 
         <view class="target-bubble">
           <text class="target-label">针对贴纸：</text>
-          <text class="target-content">{{ s.teamContent || '已删除的需求贴' }}</text>
+          <text class="target-content">{{ s.targetTeamContent || '已删除的需求贴' }}</text>
         </view>
 
         <view class="skills-row">
-          <view v-for="skill in s.senderInfo.skills" :key="skill" class="skill-tag">#{{ skill }}</view>
+          <view v-for="skill in (s.senderInfo.skills || [])" :key="skill" class="skill-tag">#{{ skill }}</view>
         </view>
 
         <view class="card-actions">
@@ -78,11 +78,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useUserStore } from '@/store/user'
 
+const userStore = useUserStore()
 interface Signal {
   _id: string;
   senderInfo: any;
-  teamContent: string;
+  targetTeamContent: string;
   status: 'pending' | 'accepted' | 'ignored';
   createTime: any;
 }
@@ -99,11 +101,12 @@ const statusMap = {
 }
 
 const fetchSignals = async () => {
+  if (!userStore.openid) await userStore.login()
   loading.value = true
   try {
     const db = wx.cloud.database()
     const { data } = await db.collection('pokes')
-      .where({ receiverId: '{openid}' }) // 云开发会自动替换 openid
+      .where({ receiverId: userStore.openid }) 
       .orderBy('createTime', 'desc')
       .get()
     
