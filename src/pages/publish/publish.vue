@@ -48,9 +48,15 @@
 
       <view class="action-zone">
         <button class="push-btn" :loading="submitting" @click="handlePublish">
-          {{ isEdit ? '更新贴纸' : '正式贴出' }}
+          {{ submitting ? '安全扫描中...' : (isEdit ? '更新贴纸' : '正式贴出') }}
         </button>
         <view class="back-text" @click="goBack">返回广场</view>
+        
+        <!-- 🛡️ 合规提示：微信审核必备 -->
+        <view class="compliance-footer">
+          <text class="dot">●</text>
+          <text>所有公开贴纸均需经过系统安全审核</text>
+        </view>
       </view>
     </view>
   </view>
@@ -87,12 +93,12 @@ const selectCategory = (cat: any) => {
 }
 
 const handlePublish = async () => {
-  // 1. 拦截：如果自己的联系方式不全，提示去补全
-  if (!userStore.isContactComplete) {
+  // 1. 拦截：如果自己的名片不全（昵称、学校、联系方式），提示去补全
+  if (!userStore.isProfileComplete) {
     uni.showModal({
-      title: '开启学习名片',
-      content: '为了让寻找伙伴的同学能联系上你，请先补全一种联系方式',
-      confirmText: '去补全',
+      title: '完整学习名片',
+      content: '为了让伙伴能够了解并联系上你，请先补全昵称、学校及任一联系方式',
+      confirmText: '去完善',
       success: (res) => {
         if (res.confirm) uni.navigateTo({ url: '/pages/register/register' })
       }
@@ -105,7 +111,21 @@ const handlePublish = async () => {
     return
   }
 
+  // 🛡️ MVP 本地禁词过滤逻辑 (简单但合规)
+  const forbiddenWords = ['刷单', '贷款', '兼职', '加Q', '傻逼', '垃圾'] // 示例库
+  const hasForbidden = forbiddenWords.some(w => formData.content.includes(w))
+  if (hasForbidden) {
+    uni.showModal({
+      title: '内容合规提醒',
+      content: '贴纸中包含敏感或受限词汇，请保持学术交流的清朗环境',
+      showCancel: false,
+      confirmText: '去整改'
+    })
+    return
+  }
+
   submitting.value = true
+  uni.showLoading({ title: '进行安全检查' })
   try {
     const db = wx.cloud.database()
     
@@ -220,6 +240,12 @@ onLoad(async (options) => {
   margin-top: 100rpx; text-align: center;
   .push-btn { background: #1a1a1a; color: #fff; border-radius: 30rpx; font-weight: bold; font-size: 32rpx; padding: 20rpx 0; box-shadow: 0 25rpx 50rpx rgba(0,0,0,0.15); }
   .back-text { margin-top: 50rpx; font-size: 26rpx; color: #9ca3af; }
+  
+  .compliance-footer {
+    margin-top: 60rpx; display: flex; align-items: center; justify-content: center; gap: 10rpx;
+    font-size: 20rpx; color: #9ca3af; letter-spacing: 1rpx; opacity: 0.6;
+    .dot { font-size: 14rpx; }
+  }
   .edit-badge { 
       position: absolute; bottom: 0; right: 0; background: #fff; width: 56rpx; height: 56rpx; 
       border-radius: 18rpx; display: flex; align-items: center; justify-content: center;

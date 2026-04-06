@@ -360,19 +360,43 @@ const goToUserProfile = (openid: string) => { if (openid) uni.navigateTo({ url: 
 
 const handleCardClick = (item: any) => { selectedItem.value = item }
 
-const handlePoke = (item: any) => {
-  if (!userStore.isContactComplete) {
+const handlePoke = async (item: any) => {
+  if (!userStore.isProfileComplete) {
     uni.showModal({
-      title: '完整名片',
-      content: '补全一种联系方式后，才能发送组队信号哦',
-      confirmText: '去补全',
-      success: (res) => { if (res.confirm) goToRegister() }
+      title: '完整学习名片',
+      content: '补全昵称、学校及任一联系方式后，才能开始寻找伙伴哦',
+      confirmText: '去完善',
+      success: (res) => { if (res.confirm) goToProfile() }
     })
     return
   }
-  selectedItem.value = item
-  applyMsg.value = ''
-  showApplyPanel.value = true
+
+  if (item._openid === userStore.openid) {
+    uni.showToast({ title: '不能给自己投递哦', icon: 'none' })
+    return
+  }
+
+  uni.showLoading({ title: '准备中...' })
+  try {
+    const db = wx.cloud.database()
+    const { data: existing } = await db.collection('pokes').where({
+      targetTeamId: item._id,
+      senderId: userStore.openid
+    }).get()
+
+    if (existing.length > 0) {
+      uni.showToast({ title: '你已经投递过啦，请耐心等待', icon: 'none' })
+      return
+    }
+
+    selectedItem.value = item
+    applyMsg.value = ''
+    showApplyPanel.value = true
+  } catch (e) {
+    uni.showToast({ title: '网络拥挤', icon: 'none' })
+  } finally {
+    uni.hideLoading()
+  }
 }
 
 const confirmPoke = async () => {

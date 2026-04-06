@@ -14,6 +14,13 @@ export const useUserStore = defineStore('user', () => {
     return !!(phone || qq || wechat)
   })
 
+  // 🛡️ MVP 强化：检查基础资料（昵称、学校、联系方式）是否完整
+  const isProfileComplete = computed(() => {
+    if (!userInfo.value) return false
+    const hasBasic = !!(userInfo.value.nickname && userInfo.value.school)
+    return hasBasic && isContactComplete.value
+  })
+
   // 这里的 login 只是调用云函数获取 openid
   // 真正的“注册/补全信息”逻辑可以在后续页面完成
   const login = async () => {
@@ -112,6 +119,7 @@ export const useUserStore = defineStore('user', () => {
     isLogin,
     isRegistered,
     isContactComplete,
+    isProfileComplete,
     login,
     registerUser
   }
