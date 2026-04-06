@@ -5,7 +5,7 @@
       <view class="header-left" @click="goToProfile">
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
-          <text class="title">学习搭子</text>
+          <text class="title">学习搭子 [验证-MINI]</text>
           <text class="subtitle">找到你的学术合伙人</text>
         </view>
       </view>
