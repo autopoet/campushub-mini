@@ -7,6 +7,14 @@
 			}
 		},
 		{
+			"path": "pages/publish/publish",
+			"style": {
+				"navigationBarTitleText": "发布需求",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
 			"path": "pages/register/register",
 			"style": {
 				"navigationBarTitleText": "完善资料",

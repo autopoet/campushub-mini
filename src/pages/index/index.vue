@@ -62,7 +62,7 @@
     </view>
 
     <!-- 注册强制拦截层 -->
-    <view v-if="!userStore.isRegistered && !authLoading" class="auth-mask">
+    <view v-if="!authLoading && !userStore.isRegistered" class="auth-mask">
       <view class="auth-card">
         <text class="auth-title">👋 欢迎来到 CampusHub</text>
         <text class="auth-desc">你需要先完善校友资料才能查看需求广场</text>
@@ -119,11 +119,16 @@ const fetchTeams = async () => {
 
 onMounted(async () => {
   authLoading.value = true
-  const hasUser = await userStore.initUser()
+  // 1. 调用登录（获取 OpenID 并检查注册状态）
+  await userStore.login()
   authLoading.value = false
   
+  // 2. 如果已注册，则拉取大厅数据
   if (userStore.isRegistered) {
     fetchTeams()
+  } else {
+    // 强制跳转逻辑（可选，目前已通过遮罩拦截）
+    // goToRegister()
   }
 })
 

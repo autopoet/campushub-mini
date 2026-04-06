@@ -135,7 +135,7 @@ const submitting = ref(false)
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
 const gradeRange = ['大一', '大二', '大三', '大四', '研一', '研二', '研三', '博士及以上']
-const skillOptions = ref(['编程', '建模', '文档撰写', 'PPT', '视频剪辑', '策划', '嵌入式', '英语', '答辩'])
+const skillOptions = ref(['编程', '建模', '文档', 'PPT', '剪辑', '策划', '羽毛球', '自习考研', '开黑', '美食', '旅游', '拍照', '英语'])
 const contactTypes = [{ label: '微信', value: 'wechat' }, { label: 'QQ', value: 'qq' }, { label: '手机', value: 'phone' }]
 
 const formData = reactive({ avatarUrl: '', nickname: '', school: '', grade: '', skills: [] as string[], contactInfo: { type: 'wechat', value: '' } })
