@@ -189,6 +189,7 @@
           <button class="mega-poke-btn" @click="handlePoke(selectedItem)">
             <text>戳他 🖐️</text>
           </button>
+          <view class="report-trigger" @click="handleReport(selectedItem)">🚩 违规举报</view>
         </view>
       </view>
     </view>
@@ -306,7 +307,15 @@ const fetchTeams = async () => {
   loading.value = true
   try {
     const db = wx.cloud.database()
+    const _ = db.command
     let query = db.collection('teams') as any
+    
+    // 🛡️ MVP 核心：30天自动隐藏逻辑
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    query = query.where({
+      createTime: _.gt(thirtyDaysAgo)
+    })
+
     if (currentTab.value !== 'ALL') query = query.where({ category: currentTab.value })
     if (schoolFilter.value === 'SAME' && userStore.userInfo?.school) query = query.where({ school: userStore.userInfo.school })
     if (searchKeyword.value) {
@@ -401,6 +410,32 @@ const confirmPoke = async () => {
 }
 
 const loadMore = () => { if (loading.value || teams.value.length === 0) return }
+
+const handleReport = (item: any) => {
+  const reasons = ['言语骚扰', '广告垃圾', '不实信息', '其他违规']
+  uni.showActionSheet({
+    itemList: reasons,
+    success: async (res) => {
+      const reason = reasons[res.tapIndex]
+      uni.showLoading({ title: '正在提交' })
+      try {
+        const db = wx.cloud.database()
+        await db.collection('reports').add({
+          data: {
+            targetId: item._id,
+            targetContent: item.content,
+            reporterId: userStore.openid,
+            reason: reason,
+            createTime: db.serverDate()
+          }
+        })
+        uni.showToast({ title: '已收到举报，我们将核实处理', icon: 'none' })
+      } catch (e) {
+        uni.showToast({ title: '网络拥挤', icon: 'none' })
+      }
+    }
+  })
+}
 </script>
 
 <style lang="scss" scoped>
@@ -645,6 +680,10 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
         display: flex; align-items: center; justify-content: center;
         font-size: 34rpx; font-weight: 900; box-shadow: 0 20rpx 50rpx rgba(0,0,0,0.25);
         &:active { transform: scale(0.96); }
+      }
+      .report-trigger {
+        margin-top: 30rpx; font-size: 20rpx; color: #1a1a1a; opacity: 0.3;
+        text-decoration: underline; font-weight: 800; cursor: pointer;
       }
     }
   }
