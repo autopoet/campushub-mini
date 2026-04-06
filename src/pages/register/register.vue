@@ -70,8 +70,8 @@
       <view v-if="currentStep === 2" class="step-content-full">
         <view class="top-content">
           <view class="header">
-            <text class="title">学术名片</text>
-            <text class="subtitle">展示学术专长，匹配更精准</text>
+            <text class="title">自荐名片</text>
+            <text class="subtitle">让搭子更了解你，学习不再孤单</text>
           </view>
 
           <view class="skills-container">
@@ -145,7 +145,7 @@ const submitting = ref(false)
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
 const gradeRange = ['大一', '大二', '大三', '大四', '研一', '研二', '研三', '博士及以上']
-const skillOptions = ref(['数学建模', '算法编程', '雅思/托福', '考研英语', '政治背诵', '申论批改', '行测/逻辑', '法硕', 'GPA刷分', '证书考证'])
+const skillOptions = ref(['数学建模', '算法编程', '雅思/托福', '资料共享', '图书馆钉子户', '咖啡监督', '互背单词', '申论批改', '简历优化', '论文润色'])
 const contactTypes = [{ label: '手机', value: 'phone' }, { label: 'QQ', value: 'qq' }, { label: '微信', value: 'wechat' }]
 
 const formData = reactive({ avatarUrl: '', nickname: '', school: '', grade: '', skills: [] as string[], contacts: { wechat: '', qq: '', phone: '' } })
