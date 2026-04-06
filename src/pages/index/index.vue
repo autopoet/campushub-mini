@@ -1,7 +1,11 @@
 <template>
-  <view class="container">
+  <view class="container" :style="{ paddingTop: headerSafeHeight + 'px' }">
     <!-- 顶部导航栏 -->
-    <view v-if="!authLoading" class="hall-header">
+    <view v-if="!authLoading" class="page-header" :style="{ 
+      paddingTop: statusBarHeight + 'px', 
+      paddingRight: menuButtonWidth + 20 + 'px',
+      height: navBarHeight + 'px'
+    }">
       <view class="header-left" @click="goToProfile">
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
@@ -36,18 +40,21 @@
       refresher-enabled
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh">
-      <!-- 学术分类切换栏 -->
-      <view class="category-tabs">
-        <scroll-view scroll-x class="tab-scroll" :show-scrollbar="false">
-          <view 
-            v-for="cat in categoryTabs" 
-            :key="cat.name" 
-            class="tab-item"
-            :class="{ active: currentTab === cat.name }"
-            @click="handleTabChange(cat.name)">
-            {{ cat.label }}
-          </view>
-        </scroll-view>
+      <!-- 极简搜索与筛选区 -->
+      <view class="search-filter-section">
+        <view class="search-bar-wrap">
+          <text class="search-icon">🔍</text>
+          <input 
+            class="search-input" 
+            v-model="searchKeyword" 
+            placeholder="搜索关键词（竞赛/考研...）" 
+            @input="onSearchInput"
+            placeholder-class="placeholder" />
+        </view>
+        <view class="filter-btn" @click="showFilterDrawer = true">
+          <text class="filter-icon">⚙️</text>
+          <view class="filter-dot" v-if="hasActiveFilter"></view>
+        </view>
       </view>
       
       <view :class="['requirement-wall', isWaterfall ? 'waterfall' : 'feed-list']">
@@ -113,6 +120,47 @@
       </view>
     </view>
 
+    <!-- 🌟 酷炫筛选抽屉 -->
+    <view v-if="showFilterDrawer" class="filter-drawer-mask" @click="showFilterDrawer = false">
+      <view class="filter-drawer animate-slide-up" @click.stop>
+        <view class="drawer-header">
+          <text class="drawer-title">全局筛选</text>
+          <view class="reset-link" @click="resetFilters">重置</view>
+        </view>
+        
+        <view class="filter-group">
+          <text class="group-label">主要领域</text>
+          <view class="options-grid">
+            <view 
+              v-for="cat in categoryTabs" 
+              :key="cat.name" 
+              @click="currentTab = cat.name"
+              :class="['option-pill', { active: currentTab === cat.name }]">
+              {{ cat.label }}
+            </view>
+          </view>
+        </view>
+
+        <view class="filter-group">
+          <text class="group-label">学校范围</text>
+          <view class="options-grid">
+            <view 
+              @click="schoolFilter = 'ALL'"
+              :class="['option-pill', { active: schoolFilter === 'ALL' }]">
+              不限
+            </view>
+            <view 
+              @click="schoolFilter = 'SAME'"
+              :class="['option-pill', { active: schoolFilter === 'SAME' }]">
+              仅看同校
+            </view>
+          </view>
+        </view>
+
+        <button class="apply-btn" @click="applyFilters">查看结果</button>
+      </view>
+    </view>
+
     <!-- 🌟 酷炫觉醒预览层 -->
     <view v-if="selectedItem" class="detail-overlay" @click.self="selectedItem = null">
       <view class="detail-card animate-zoom-in" :style="{ backgroundColor: selectedItem.color }">
@@ -147,8 +195,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
+import { onShow } from '@dcloudio/uni-app'
 
 const userStore = useUserStore()
 const isWaterfall = ref(true) // 默认开启瀑布流
@@ -160,6 +209,9 @@ const authLoading = ref(true)
 const pokingId = ref('') // 正被戳中的卡片ID
 const selectedItem = ref<any>(null) // 被选中预览的项
 
+const searchKeyword = ref('')
+const showFilterDrawer = ref(false)
+const schoolFilter = ref('ALL') // ALL | SAME
 const currentTab = ref('ALL')
 const categoryTabs = [
   { name: 'ALL', label: '全部' },
@@ -169,9 +221,45 @@ const categoryTabs = [
   { name: 'DAILY', label: '日常学习' }
 ]
 
+const hasActiveFilter = computed(() => currentTab.value !== 'ALL' || schoolFilter.value !== 'ALL')
+
+const onSearchInput = () => {
+  // 抖动处理（可选）在这里直接实时触发搜索
+  fetchTeams()
+}
+
+const applyFilters = () => {
+  showFilterDrawer.value = false
+  onRefresh()
+}
+
+const resetFilters = () => {
+  currentTab.value = 'ALL'
+  schoolFilter.value = 'ALL'
+  searchKeyword.value = ''
+  onRefresh()
+}
+
 const handleTabChange = (name: string) => {
   currentTab.value = name
   onRefresh()
+}
+
+// 胶囊避让逻辑
+const statusBarHeight = ref(0)
+const navBarHeight = ref(44)
+const menuButtonWidth = ref(0)
+const headerSafeHeight = ref(0)
+
+const initNavigation = () => {
+  const sys = uni.getSystemInfoSync()
+  statusBarHeight.value = sys.statusBarHeight || 0
+  
+  // 获取胶囊位置
+  const menu = uni.getMenuButtonBoundingClientRect()
+  menuButtonWidth.value = sys.windowWidth - menu.left
+  navBarHeight.value = (menu.top - sys.statusBarHeight!) * 2 + menu.height
+  headerSafeHeight.value = statusBarHeight.value + navBarHeight.value
 }
 
 // 预设高饱和度马卡龙色系（便利贴风格）
@@ -197,10 +285,27 @@ const fetchTeams = async () => {
   loading.value = true
   try {
     const db = wx.cloud.database()
-    let query = db.collection('teams')
+    const _ = db.command
+    let query = db.collection('teams') as any
     
+    // 分类筛选
     if (currentTab.value !== 'ALL') {
-      query = query.where({ category: currentTab.value }) as any
+      query = query.where({ category: currentTab.value })
+    }
+    
+    // 学校筛选
+    if (schoolFilter.value === 'SAME' && userStore.userInfo?.school) {
+      query = query.where({ school: userStore.userInfo.school })
+    }
+
+    // 关键词搜索 (简单的关键词模糊匹配)
+    if (searchKeyword.value) {
+      query = query.where({
+        content: db.RegExp({
+          regexp: searchKeyword.value,
+          options: 'i'
+        })
+      })
     }
 
     const { data } = await query
@@ -216,6 +321,7 @@ const fetchTeams = async () => {
 }
 
 onMounted(async () => {
+  initNavigation()
   authLoading.value = true
   // 1. 调用登录
   await userStore.login()
@@ -227,8 +333,6 @@ onMounted(async () => {
   }
 })
 
-// 增加 onShow 检查，确保从消息中心回来后红点能实时刷新
-import { onShow } from '@dcloudio/uni-app'
 onShow(() => {
   if (userStore.isRegistered) {
     checkNewSignals()
@@ -270,7 +374,6 @@ const handleCardClick = (item: any) => {
 const confirmPoke = () => {
   if (selectedItem.value) {
     handlePoke(selectedItem.value)
-    // 投递成功后可以选择关闭预览
   }
 }
 
@@ -278,15 +381,12 @@ const confirmPoke = () => {
 const loadMore = () => {
   if (loading.value || teams.value.length === 0) return
   console.log('Load more teams...')
-  // TODO: 实现真正的分页拉取
 }
 
 // 核心互动：投递名片 (Poke)
 const handlePoke = async (item: any) => {
-  // 杜绝狂点拦截
   if (pokingId.value === item._id) return
 
-  // 1. 检查自己的联系方式是否完整（之前我们在 store 注入了 isContactComplete）
   if (!userStore.isContactComplete) {
     uni.showModal({
       title: '开启社交名片',
@@ -300,7 +400,6 @@ const handlePoke = async (item: any) => {
     return
   }
 
-  // 2. 不能投递给自己
   if (item._openid === userStore.openid) {
     uni.showToast({ title: '这是你自己发的动态哦', icon: 'none' })
     return
@@ -310,7 +409,6 @@ const handlePoke = async (item: any) => {
 
   try {
     const db = wx.cloud.database()
-    // 3. 在 pokes 集合创建一条申请记录
     await db.collection('pokes').add({
       data: {
         targetTeamId: item._id,
@@ -330,7 +428,6 @@ const handlePoke = async (item: any) => {
       }
     })
 
-    // 4. 更新帖子的“感兴趣”人数 (原子加1)
     const _ = db.command
     await db.collection('teams').doc(item._id).update({
       data: { pokesCount: _.inc(1) }
@@ -353,17 +450,18 @@ const handlePoke = async (item: any) => {
   height: 100vh; background: #f0f2f5; display: flex; flex-direction: column;
 }
 
-.hall-header {
-  position: sticky; top: 0; z-index: 100;
-  margin-bottom: 50rpx; display: flex; justify-content: space-between; align-items: center; 
-  padding: 100rpx 48rpx 40rpx; 
-  background: rgba(248, 248, 248, 0.85); backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+.page-header {
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40rpx; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+  box-sizing: border-box; border-bottom: 1px solid rgba(0,0,0,0.05);
 
   .header-left { 
     flex: 1; display: flex; align-items: center; gap: 20rpx; 
-    .mini-avatar { width: 92rpx; height: 92rpx; border-radius: 50%; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
+    .mini-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
     .title-group { display: flex; flex-direction: column; }
+    .title { font-size: 36rpx; font-weight: 900; color: #1a1a1a; }
+    .subtitle { font-size: 20rpx; color: #9ca3af; }
   }
   .header-right { 
     display: flex; align-items: center; gap: 20rpx;
@@ -446,22 +544,52 @@ const handlePoke = async (item: any) => {
   100% { transform: scale(1.8) translateY(-40rpx); opacity: 0; }
 }
 
-.category-tabs {
-  margin-bottom: 30rpx; padding: 0 10rpx;
-  .tab-scroll {
-    white-space: nowrap; width: 100%;
-    .tab-item {
-      display: inline-block; padding: 12rpx 36rpx; margin-right: 20rpx;
-      font-size: 26rpx; font-weight: 800; color: #6b7280;
-      background: #fff; border-radius: 40rpx; transition: all 0.3s;
-      border: 1rpx solid rgba(0,0,0,0.05); box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.02);
-      &.active {
-        background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff;
-        box-shadow: 0 10rpx 20rpx rgba(99,102,241,0.2); border-color: transparent;
-      }
-    }
+.search-filter-section {
+  display: flex; align-items: center; gap: 20rpx; margin-bottom: 40rpx;
+  .search-bar-wrap {
+    flex: 1; background: #fff; border-radius: 30rpx; padding: 20rpx 30rpx;
+    display: flex; align-items: center; gap: 15rpx;
+    box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.03); border: 1rpx solid rgba(0,0,0,0.02);
+    .search-icon { font-size: 28rpx; }
+    .search-input { flex: 1; font-size: 28rpx; color: #1a1a1a; }
+    .placeholder { color: #9ca3af; }
+  }
+  .filter-btn {
+    width: 88rpx; height: 88rpx; background: #fff; border-radius: 24rpx;
+    display: flex; align-items: center; justify-content: center; position: relative;
+    box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.03); border: 1rpx solid rgba(0,0,0,0.02);
+    .filter-icon { font-size: 36rpx; }
+    .filter-dot { position: absolute; top: -4rpx; right: -4rpx; width: 14rpx; height: 14rpx; background: #a855f7; border-radius: 50%; border: 4rpx solid #fff; }
   }
 }
+
+.filter-drawer-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); z-index: 1200;
+  display: flex; align-items: flex-end;
+  .filter-drawer {
+    width: 100%; background: #fff; border-radius: 60rpx 60rpx 0 0; padding: 60rpx 48rpx;
+    animation: drawerUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    .drawer-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 50rpx;
+      .drawer-title { font-size: 40rpx; font-weight: 900; color: #1a1a1a; }
+      .reset-link { font-size: 26rpx; color: #9ca3af; font-weight: 800; }
+    }
+    .filter-group {
+      margin-bottom: 50rpx;
+      .group-label { font-size: 24rpx; font-weight: 800; color: #9ca3af; margin-bottom: 24rpx; display: block; }
+      .options-grid {
+        display: flex; flex-wrap: wrap; gap: 20rpx;
+        .option-pill {
+          padding: 18rpx 36rpx; background: #f3f4f6; border-radius: 40rpx; font-size: 26rpx; font-weight: 800; color: #6b7280; transition: all 0.3s;
+          &.active { background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff; box-shadow: 0 8rpx 20rpx rgba(99,102,241,0.2); }
+        }
+      }
+    }
+    .apply-btn { background: #1a1a1a; color: #fff; border-radius: 30rpx; padding: 25rpx 0; font-size: 32rpx; font-weight: 800; margin-top: 40rpx; }
+  }
+}
+
+@keyframes drawerUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .fab-group {
   position: fixed; bottom: 80rpx; right: 40rpx; display: flex; flex-direction: column; gap: 30rpx; z-index: 99;
