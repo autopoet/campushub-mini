@@ -26,7 +26,7 @@
 		{
 			"path": "pages/notifications/notifications",
 			"style": {
-				"navigationBarTitleText": "组队申请",
+				"navigationBarTitleText": "谁戳了我",
 				"navigationBarBackgroundColor": "#F9FAFB"
 			}
 		},

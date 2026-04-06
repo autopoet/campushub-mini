@@ -1,8 +1,8 @@
 <template>
   <view class="notify-container">
-    <view class="page-header">
-      <text class="title">收到信号</text>
-      <text class="subtitle">这些校友想和你一起学习</text>
+    <view class="poetic-header">
+      <text class="title">谁戳了我</text>
+      <text class="quote">海内存知己，天涯若比邻</text>
     </view>
 
     <!-- 信号列表 -->
@@ -185,10 +185,27 @@ onMounted(fetchSignals)
   min-height: 100vh; background: #f9fafb; padding: 100rpx 40rpx;
 }
 
-.page-header {
-  margin-bottom: 60rpx;
-  .title { font-size: 56rpx; font-weight: 900; color: #111827; display: block; }
-  .subtitle { font-size: 26rpx; color: #6b7280; margin-top: 15rpx; display: block; }
+.poetic-header {
+  padding: 80rpx 40rpx 60rpx;
+  background: #fff;
+  
+  .title {
+    font-size: 48rpx;
+    font-weight: 900;
+    color: #1a1a1a;
+    display: block;
+    letter-spacing: 4rpx;
+  }
+  
+  .quote {
+    font-size: 26rpx;
+    color: #999;
+    margin-top: 15rpx;
+    display: block;
+    font-style: italic;
+    &::before { content: '“'; }
+    &::after { content: '”'; }
+  }
 }
 
 .signal-list {

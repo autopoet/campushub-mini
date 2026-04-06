@@ -1,7 +1,11 @@
 <template>
-  <view class="container">
+  <view class="container" :style="{ paddingTop: headerSafeHeight + 'px' }">
     <!-- 顶部导航栏 -->
-    <view v-if="!authLoading" class="hall-header">
+    <view v-if="!authLoading" class="page-header" :style="{ 
+      paddingTop: statusBarHeight + 'px', 
+      paddingRight: menuButtonWidth + 20 + 'px',
+      height: navBarHeight + 'px'
+    }">
       <view class="header-left" @click="goToProfile">
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
@@ -135,6 +139,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
+import { onShow } from '@dcloudio/uni-app'
 
 const userStore = useUserStore()
 const isWaterfall = ref(true) // 默认开启瀑布流
@@ -145,6 +150,23 @@ const hasNewSignals = ref(false) // 暂时模拟红点
 const authLoading = ref(true)
 const pokingId = ref('') // 正被戳中的卡片ID
 const selectedItem = ref<any>(null) // 被选中预览的项
+
+// 胶囊避让逻辑
+const statusBarHeight = ref(0)
+const navBarHeight = ref(44)
+const menuButtonWidth = ref(0)
+const headerSafeHeight = ref(0)
+
+const initNavigation = () => {
+  const sys = uni.getSystemInfoSync()
+  statusBarHeight.value = sys.statusBarHeight || 0
+  
+  // 获取胶囊位置
+  const menu = uni.getMenuButtonBoundingClientRect()
+  menuButtonWidth.value = sys.windowWidth - menu.left
+  navBarHeight.value = (menu.top - sys.statusBarHeight!) * 2 + menu.height
+  headerSafeHeight.value = statusBarHeight.value + navBarHeight.value
+}
 
 // 预设高饱和度马卡龙色系（便利贴风格）
 const postItColors = ['#E9D5FF', '#CFFAFE', '#FEF9C3', '#FFDADA', '#DCFCE7']
@@ -182,6 +204,7 @@ const fetchTeams = async () => {
 }
 
 onMounted(async () => {
+  initNavigation()
   authLoading.value = true
   // 1. 调用登录
   await userStore.login()
@@ -193,8 +216,6 @@ onMounted(async () => {
   }
 })
 
-// 增加 onShow 检查，确保从消息中心回来后红点能实时刷新
-import { onShow } from '@dcloudio/uni-app'
 onShow(() => {
   if (userStore.isRegistered) {
     checkNewSignals()
@@ -236,7 +257,6 @@ const handleCardClick = (item: any) => {
 const confirmPoke = () => {
   if (selectedItem.value) {
     handlePoke(selectedItem.value)
-    // 投递成功后可以选择关闭预览
   }
 }
 
@@ -244,15 +264,12 @@ const confirmPoke = () => {
 const loadMore = () => {
   if (loading.value || teams.value.length === 0) return
   console.log('Load more teams...')
-  // TODO: 实现真正的分页拉取
 }
 
 // 核心互动：投递名片 (Poke)
 const handlePoke = async (item: any) => {
-  // 杜绝狂点拦截
   if (pokingId.value === item._id) return
 
-  // 1. 检查自己的联系方式是否完整（之前我们在 store 注入了 isContactComplete）
   if (!userStore.isContactComplete) {
     uni.showModal({
       title: '开启社交名片',
@@ -266,7 +283,6 @@ const handlePoke = async (item: any) => {
     return
   }
 
-  // 2. 不能投递给自己
   if (item._openid === userStore.openid) {
     uni.showToast({ title: '这是你自己发的动态哦', icon: 'none' })
     return
@@ -276,25 +292,23 @@ const handlePoke = async (item: any) => {
 
   try {
     const db = wx.cloud.database()
-    // 3. 在 pokes 集合创建一条申请记录
     await db.collection('pokes').add({
       data: {
         targetTeamId: item._id,
         targetTeamContent: item.content,
-        receiverId: item._openid, // 接收者
-        senderId: userStore.openid, // 发送者
+        receiverId: item._openid,
+        senderId: userStore.openid,
         senderInfo: {
           nickname: userStore.userInfo.nickname,
           avatarUrl: userStore.userInfo.avatarUrl,
           contacts: userStore.userInfo.contacts,
           school: userStore.userInfo.school
         },
-        status: 'pending', // pending: 待响应, accepted: 已互粉, rejected: 已忽略
+        status: 'pending',
         createTime: db.serverDate()
       }
     })
 
-    // 4. 更新帖子的“感兴趣”人数 (原子加1)
     const _ = db.command
     await db.collection('teams').doc(item._id).update({
       data: { pokesCount: _.inc(1) }
@@ -317,17 +331,18 @@ const handlePoke = async (item: any) => {
   height: 100vh; background: #f0f2f5; display: flex; flex-direction: column;
 }
 
-.hall-header {
-  position: sticky; top: 0; z-index: 100;
-  margin-bottom: 50rpx; display: flex; justify-content: space-between; align-items: center; 
-  padding: 100rpx 48rpx 40rpx; 
-  background: rgba(248, 248, 248, 0.85); backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+.page-header {
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40rpx; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+  box-sizing: border-box; border-bottom: 1px solid rgba(0,0,0,0.05);
 
   .header-left { 
     flex: 1; display: flex; align-items: center; gap: 20rpx; 
-    .mini-avatar { width: 92rpx; height: 92rpx; border-radius: 50%; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
+    .mini-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
     .title-group { display: flex; flex-direction: column; }
+    .title { font-size: 36rpx; font-weight: 900; color: #1a1a1a; }
+    .subtitle { font-size: 20rpx; color: #9ca3af; }
   }
   .header-right { 
     display: flex; align-items: center; gap: 20rpx;
