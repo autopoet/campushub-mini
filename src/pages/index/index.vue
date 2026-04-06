@@ -1,10 +1,14 @@
 <template>
   <view class="container">
-    <!-- 顶部导航栏：视图切换 -->
-    <view v-if="!authLoading" class="header">
-      <text class="page-title">需求广场</text>
-      <view class="view-toggle" @click="isWaterfall = !isWaterfall">
-        <text class="icon">{{ isWaterfall ? '📑' : '🗂️' }}</text>
+    <!-- 顶部导航栏 -->
+    <view v-if="!authLoading" class="hall-header">
+      <view class="header-left">
+        <text class="title">学习搭子广场</text>
+        <text class="subtitle">找到志同道合的学习伙伴</text>
+      </view>
+      <view class="header-right" @click="goToNotifications">
+        <view class="msg-icon">🛰️</view>
+        <view class="badge" v-if="hasNewSignals"></view>
       </view>
     </view>
 
@@ -87,6 +91,7 @@ const isWaterfall = ref(false) // 默认大图列表
 const teams = ref<any[]>([])
 const loading = ref(true)
 const refreshing = ref(false)
+const hasNewSignals = ref(false) // 暂时模拟红点
 const authLoading = ref(true)
 
 // 预设高饱和度马卡龙色系（便利贴风格）
@@ -140,6 +145,7 @@ onMounted(async () => {
 
 const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
 const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
+const goToNotifications = () => uni.navigateTo({ url: '/pages/notifications/notifications' })
 
 // 底部加载更多 (待分页功能完善)
 const loadMore = () => {
@@ -213,10 +219,16 @@ const handlePoke = async (item: any) => {
   height: 100vh; background: #f0f2f5; display: flex; flex-direction: column;
 }
 
-.header {
-  padding: 100rpx 40rpx 20rpx; background: #fff; display: flex; justify-content: space-between; align-items: center;
-  .page-title { font-size: 48rpx; font-weight: 900; color: #1a1a1a; }
-  .view-toggle { width: 80rpx; height: 80rpx; background: #f5f5f5; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; }
+.hall-header {
+  margin-bottom: 50rpx; display: flex; justify-content: space-between; align-items: flex-start; padding: 100rpx 40rpx 20rpx;
+  .header-left { flex: 1; }
+  .header-right { 
+    width: 100rpx; height: 100rpx; display: flex; align-items: center; justify-content: center; position: relative;
+    .msg-icon { font-size: 50rpx; }
+    .badge { position: absolute; top: 15rpx; right: 15rpx; width: 18rpx; height: 18rpx; background: #ef4444; border-radius: 50%; border: 4rpx solid #f8f8f8; }
+  }
+  .title { font-size: 56rpx; font-weight: 900; color: #1a1a1a; display: block; letter-spacing: 2rpx; }
+  .subtitle { font-size: 26rpx; color: #888; margin-top: 15rpx; display: block; }
 }
 
 .scroll-area { flex: 1; padding: 20rpx; box-sizing: border-box; }

@@ -20,6 +20,13 @@
 				"navigationBarTitleText": "完善资料",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/notifications/notifications",
+			"style": {
+				"navigationBarTitleText": "信号中心",
+				"navigationBarBackgroundColor": "#F9FAFB"
+			}
 		}
 	],
 	"globalStyle": {
