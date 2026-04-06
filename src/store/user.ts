@@ -1,11 +1,18 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
   const openid = ref('')
   const userInfo = ref<any>(null)
   const isLogin = ref(false)
   const isRegistered = ref(false) // 记录是否已注册
+
+  // 检查社交联系方式是否至少填了一项
+  const isContactComplete = computed(() => {
+    if (!userInfo.value || !userInfo.value.contacts) return false
+    const { phone, qq, wechat } = userInfo.value.contacts
+    return !!(phone || qq || wechat)
+  })
 
   // 这里的 login 只是调用云函数获取 openid
   // 真正的“注册/补全信息”逻辑可以在后续页面完成
@@ -81,7 +88,7 @@ export const useUserStore = defineStore('user', () => {
         school: formData.school,
         grade: formData.grade,
         skills: formData.skills,
-        contactInfo: formData.contactInfo,
+        contacts: formData.contacts,
         createTime: db.serverDate(),
         updateTime: db.serverDate()
       }
@@ -104,6 +111,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo,
     isLogin,
     isRegistered,
+    isContactComplete,
     login,
     registerUser
   }
