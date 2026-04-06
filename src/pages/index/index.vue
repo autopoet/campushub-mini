@@ -56,11 +56,10 @@
         <view 
           v-for="(item, index) in teams" 
           :key="item._id" 
-          class="post-it-card animate-pop-in"
+          class="sticker-card animate-fall-in"
           :style="{ 
             backgroundColor: item.color || getPostItColor(index), 
-            transform: `rotate(${getRandomRotate(index)}deg)`,
-            animationDelay: `${index * 0.1}s` 
+            animationDelay: (index % 10) * 0.1 + 's' 
           }"
           @click="handleCardClick(item)">
           
@@ -399,7 +398,7 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
 
 <style lang="scss" scoped>
 .container {
-  height: 100vh; background: #f0f2f5; display: flex; flex-direction: column;
+  min-height: 100vh; background: #f0f2f5; display: flex; flex-direction: column;
 }
 
 .page-header {
@@ -424,16 +423,20 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
   padding: 40rpx 0 100rpx;
   width: 100%; box-sizing: border-box;
 
-  .post-it-card { 
+  .sticker-card { 
     width: 86%; min-height: 280rpx; 
     margin: 0 auto;
   }
 }
 
-.post-it-card {
-  border-radius: 32rpx; padding: 30rpx 40rpx; position: relative; box-shadow: 10rpx 10rpx 30rpx rgba(0,0,0,0.05);
-  display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
-  border-bottom: 8rpx solid rgba(0,0,0,0.1); border-right: 2rpx solid rgba(0,0,0,0.05);
+.sticker-card {
+  break-inside: avoid;
+  background: #E0F2FE; border-radius: 24rpx; padding: 40rpx; margin-bottom: 24rpx;
+  box-shadow: 10rpx 10rpx 40rpx rgba(0,0,0,0.03); border-bottom: 6rpx solid rgba(0,0,0,0.08);
+  position: relative; overflow: hidden; min-height: 200rpx;
+  display: flex; flex-direction: column; justify-content: space-between;
+  transform: rotate(-1deg);
+  opacity: 0;
 
   .urgent-tag {
     position: absolute; top: 30rpx; right: 10rpx; background: #1a1a1a; color: #fff; padding: 6rpx 30rpx; transform: rotate(15deg); font-size: 20rpx; font-weight: 800; border-radius: 8rpx;
@@ -620,4 +623,14 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
 
 @keyframes zoomIn { from { opacity: 0; transform: scale(0.8) translateY(100rpx); } to { opacity: 1; transform: scale(1) translateY(0); } }
 .animate-zoom-in { animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+.animate-fall-in {
+  animation: fallIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes fallIn {
+  0% { transform: translateY(-100rpx) rotate(-10deg) scale(0.9); opacity: 0; }
+  60% { transform: translateY(10rpx) rotate(2deg) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) rotate(-1deg) scale(1); opacity: 1; }
+}
 </style>
