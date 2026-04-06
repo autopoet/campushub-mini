@@ -1,103 +1,204 @@
 <template>
-  <view class="content">
-    <!-- 状态加载遮罩 -->
-    <view v-if="!userStore.isLogin || !userStore.isRegistered" class="loading-mask">
-      <view class="loader"></view>
-      <text class="loading-text">环境初始化中...</text>
+  <view class="container">
+    <!-- 顶部导航栏：视图切换 -->
+    <view class="header">
+      <text class="page-title">需求广场</text>
+      <view class="view-toggle" @click="isWaterfall = !isWaterfall">
+        <text class="icon">{{ isWaterfall ? '📑' : '🗂️' }}</text>
+      </view>
     </view>
 
-    <view v-else>
-      <image class="logo" src="/static/logo.png" />
-      <view class="text-area">
-        <text class="title">{{ title }}</text>
+    <!-- 骨架屏/加载中 -->
+    <view v-if="loading && teams.length === 0" class="loading-wall">
+       <view v-for="i in 4" :key="i" class="skeleton-card" :class="{ 'half': isWaterfall }"></view>
+    </view>
+
+    <!-- 需求滚动墙 -->
+    <scroll-view 
+      scroll-y 
+      class="scroll-area" 
+      @scrolltolower="loadMore"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh">
+      
+      <view :class="['requirement-wall', isWaterfall ? 'waterfall' : 'feed-list']">
+        <view 
+          v-for="(item, index) in teams" 
+          :key="item._id" 
+          class="post-it-card animate-pop-in"
+          :style="{ backgroundColor: getPostItColor(index), transform: `rotate(${getRandomRotate(index)}deg)` }"
+          @click="showPokeDetail(item)">
+          
+          <!-- 标签：急缺角色 -->
+          <view class="urgent-tag">急缺: {{ item.urgentRole }}</view>
+          
+          <!-- 核心内容：大字报 -->
+          <view class="card-body text-pixel">
+            {{ item.content }}
+          </view>
+          
+          <!-- 底部：学校信息与交互 -->
+          <view class="card-footer">
+            <view class="publisher-info">
+              <text class="school">{{ item.school || '校外精英' }}</text>
+              <text class="time">{{ formatTime(item.createTime) }}</text>
+            </view>
+            <view class="poke-btn">戳他 🖐️</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 空态展示 -->
+      <view v-if="!loading && teams.length === 0" class="empty-state">
+        <text class="empty-icon">🏜️</text>
+        <text class="empty-text">广场空荡荡，快去发一条吧</text>
+      </view>
+    </scroll-view>
+
+    <!-- 悬浮发布按钮 -->
+    <view class="fab-btn" @click="goToPublish">
+      <text class="plus">+</text>
+    </view>
+
+    <!-- 注册强制拦截层 -->
+    <view v-if="!userStore.isRegistered && !authLoading" class="auth-mask">
+      <view class="auth-card">
+        <text class="auth-title">👋 欢迎来到 CampusHub</text>
+        <text class="auth-desc">你需要先完善校友资料才能查看需求广场</text>
+        <button class="auth-btn" @click="goToRegister">去完善资料</button>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
-const title = ref('校园组队大厅')
+const isWaterfall = ref(false) // 默认大图列表
+const teams = ref<any[]>([])
+const loading = ref(true)
+const refreshing = ref(false)
+const authLoading = ref(true)
 
-// 核心逻辑：强拦截
-onShow(() => {
-  checkUser()
-})
+// 预设高饱和度马卡龙色系（便利贴风格）
+const postItColors = ['#E9D5FF', '#CFFAFE', '#FEF9C3', '#FFDADA', '#DCFCE7']
 
-const checkUser = () => {
-  // 如果用户已登录但未注册，跳转到注册页
-  if (userStore.isLogin && !userStore.isRegistered) {
-    uni.reLaunch({
-      url: '/pages/register/register'
-    })
+const getPostItColor = (i: number) => postItColors[i % postItColors.length]
+const getRandomRotate = (i: number) => (i % 2 === 0 ? -1.5 : 1.5)
+
+const formatTime = (date: any) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return `${d.getMonth() + 1}-${d.getDate()}`
+}
+
+const onRefresh = async () => {
+  refreshing.value = true
+  await fetchTeams()
+  refreshing.value = false
+}
+
+const fetchTeams = async () => {
+  loading.value = true
+  try {
+    const db = wx.cloud.database()
+    const { data } = await db.collection('teams')
+      .orderBy('createTime', 'desc')
+      .limit(20)
+      .get()
+    teams.value = data
+  } catch (e) {
+    console.error('获取广场数据失败', e)
+  } finally {
+    loading.value = false
   }
 }
 
-// 监听状态变化（防止初始化场景下的延迟）
-watchEffect(() => {
-  if (userStore.isLogin && !userStore.isRegistered) {
-    checkUser()
+onMounted(async () => {
+  authLoading.value = true
+  const hasUser = await userStore.initUser()
+  authLoading.value = false
+  
+  if (userStore.isRegistered) {
+    fetchTeams()
   }
 })
+
+const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
+const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
+const showPokeDetail = (item: any) => {
+  // TODO: 展示名片及 Poke 交互
+  console.log('Poke item:', item)
+}
 </script>
 
-<style scoped>
-.content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+<style lang="scss" scoped>
+.container {
+  height: 100vh; background: #f0f2f5; display: flex; flex-direction: column;
 }
 
-.loading-mask {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.header {
+  padding: 100rpx 40rpx 20rpx; background: #fff; display: flex; justify-content: space-between; align-items: center;
+  .page-title { font-size: 48rpx; font-weight: 900; color: #1a1a1a; }
+  .view-toggle { width: 80rpx; height: 80rpx; background: #f5f5f5; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; }
 }
 
-.loader {
-  width: 48px;
-  height: 48px;
-  border: 5px solid #667eea;
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  display: inline-block;
-  box-sizing: border-box;
-  animation: rotation 1s linear infinite;
+.scroll-area { flex: 1; padding: 20rpx; box-sizing: border-box; }
+
+/* 瀑布流 & 列表布局 */
+.requirement-wall {
+  display: flex; flex-wrap: wrap; gap: 30rpx;
+  &.feed-list { flex-direction: column; .post-it-card { width: 100%; min-height: 420rpx; } }
+  &.waterfall { display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; .post-it-card { width: 100%; min-height: 380rpx; .card-body { font-size: 32rpx; -webkit-line-clamp: 4; } } }
 }
 
-.loading-text {
-  margin-top: 30rpx;
-  font-size: 28rpx;
-  color: #888;
+.post-it-card {
+  border-radius: 32rpx; padding: 40rpx; position: relative; box-shadow: 10rpx 10rpx 30rpx rgba(0,0,0,0.05);
+  display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+  border-bottom: 8rpx solid rgba(0,0,0,0.1); border-right: 2rpx solid rgba(0,0,0,0.05);
+
+  .urgent-tag {
+    position: absolute; top: 30rpx; right: -20rpx; background: #1a1a1a; color: #fff; padding: 6rpx 40rpx; transform: rotate(15deg); font-size: 20rpx; font-weight: 800; border-radius: 8rpx;
+  }
+
+  .card-body {
+    font-size: 44rpx; font-weight: 800; color: #1a1a1a; line-height: 1.4; margin-top: 40rpx;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden;
+  }
+
+  .card-footer {
+    margin-top: 40rpx; display: flex; justify-content: space-between; align-items: flex-end;
+    .publisher-info {
+      .school { font-size: 24rpx; font-weight: bold; color: #333; display: block; }
+      .time { font-size: 20rpx; color: #666; margin-top: 5rpx; }
+    }
+    .poke-btn { background: #fff; padding: 10rpx 25rpx; border-radius: 40rpx; font-size: 24rpx; font-weight: bold; border: 4rpx solid #1a1a1a; }
+  }
 }
 
-@keyframes rotation {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.fab-btn {
+  position: fixed; bottom: 80rpx; right: 50rpx; width: 120rpx; height: 120rpx; background: #1a1a1a; border-radius: 50%; box-shadow: 0 20rpx 40rpx rgba(0,0,0,0.3);
+  display: flex; align-items: center; justify-content: center; z-index: 99; color: #fff;
+  .plus { font-size: 60rpx; font-weight: 300; }
 }
 
-.logo {
-  height: 200rpx;
-  width: 200rpx;
-  margin-top: 100rpx;
-  margin-bottom: 50rpx;
+/* 强拦截层样式 */
+.auth-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 40rpx;
+  .auth-card {
+    background: #fff; border-radius: 40rpx; padding: 60rpx; width: 100%; text-align: center; animation: popIn 0.4s ease-out;
+    .auth-title { font-size: 38rpx; font-weight: bold; display: block; margin-bottom: 20rpx; }
+    .auth-desc { font-size: 26rpx; color: #666; display: block; margin-bottom: 50rpx; line-height: 1.5; }
+    .auth-btn { background: #764ba2; color: #fff; border-radius: 30rpx; font-weight: bold; }
+  }
 }
 
-.text-area {
-  display: flex;
-  justify-content: center;
-}
+.loading-wall { padding: 140rpx 40rpx; display: flex; flex-direction: column; gap: 30rpx; }
+.skeleton-card { height: 400rpx; background: #e0e0e0; border-radius: 30rpx; &.half { height: 300rpx; } }
 
-.title {
-  font-size: 36rpx;
-  color: #333;
-  font-weight: 600;
-}
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pop-in { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 </style>
