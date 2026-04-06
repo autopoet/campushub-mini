@@ -5,8 +5,8 @@
       <view class="header-left" @click="goToProfile">
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
-          <text class="title">CampusHub | 广场</text>
-          <text class="subtitle">找到你的学术合伙人</text>
+          <text class="title">寻找搭子</text>
+          <text class="subtitle">志合者，不以山海为远</text>
         </view>
       </view>
       <view class="header-right">
@@ -111,7 +111,7 @@
           <text class="main-text">{{ selectedItem.content }}</text>
           <view class="publisher-meta">
             <text class="pub-label">发布人信息</text>
-            <view class="pub-row">
+            <view class="pub-row" @click="goToUserProfile(selectedItem._openid)">
               <image class="pub-avatar" :src="selectedItem.publisherAvatar || defaultAvatar" />
               <view class="pub-text">
                 <text class="pub-name">{{ selectedItem.publisherName || '校友' }}</text>
@@ -187,9 +187,16 @@ onMounted(async () => {
   await userStore.login()
   authLoading.value = false
   
-  // 2. 如果已注册，则拉取大厅数据并检查新信号
+  // 2. 如果已注册，则拉取大厅数据
   if (userStore.isRegistered) {
     fetchTeams()
+  }
+})
+
+// 增加 onShow 检查，确保从消息中心回来后红点能实时刷新
+import { onShow } from '@dcloudio/uni-app'
+onShow(() => {
+  if (userStore.isRegistered) {
     checkNewSignals()
   }
 })
@@ -213,6 +220,12 @@ const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
 const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
 const goToNotifications = () => uni.navigateTo({ url: '/pages/notifications/notifications' })
 const goToProfile = () => uni.navigateTo({ url: '/pages/profile/profile' })
+
+// 跳转到其他校友的公开主页
+const goToUserProfile = (openid: string) => {
+  if (!openid) return
+  uni.navigateTo({ url: `/pages/profile/profile?id=${openid}` })
+}
 
 // 点击卡片进入觉醒预览
 const handleCardClick = (item: any) => {
@@ -334,8 +347,26 @@ const handlePoke = async (item: any) => {
 /* 瀑布流 & 列表布局 */
 .requirement-wall {
   display: flex; flex-wrap: wrap; gap: 30rpx;
-  &.feed-list { flex-direction: column; .post-it-card { width: 100%; min-height: 420rpx; } }
-  &.waterfall { display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; .post-it-card { width: 100%; min-height: 380rpx; .card-body { font-size: 32rpx; -webkit-line-clamp: 4; } } }
+  padding: 10rpx 10rpx 40rpx; // 增加水平内边距，给卡片旋转腾出空间
+  width: 100%; box-sizing: border-box;
+
+  &.feed-list { 
+    flex-direction: column; 
+    .post-it-card { 
+      width: 100%; min-height: 420rpx; 
+      margin: 0 auto;
+    } 
+  }
+  &.waterfall { 
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; 
+    .post-it-card { 
+      width: 100%; min-height: 380rpx; 
+      .card-body { 
+        font-size: 32rpx; 
+        -webkit-line-clamp: 4; line-clamp: 4;
+      } 
+    } 
+  }
 }
 
 .post-it-card {
@@ -349,7 +380,9 @@ const handlePoke = async (item: any) => {
 
   .card-body {
     font-size: 44rpx; font-weight: 800; color: #1a1a1a; line-height: 1.4; margin-top: 40rpx;
-    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden;
+    display: -webkit-box; -webkit-box-orient: vertical; 
+    -webkit-line-clamp: 5; line-clamp: 5; // 双重标准确保无 Lint 警告
+    overflow: hidden;
   }
 
   .card-footer {
