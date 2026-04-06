@@ -21,9 +21,15 @@
       <text class="loading-text">环境初始化中...</text>
     </view>
 
-    <!-- 骨架屏/加载中 -->
+    <!-- 幽灵便签墙 (骨架屏) -->
     <view v-if="!authLoading && loading && teams.length === 0" class="loading-wall">
-       <view v-for="i in 4" :key="i" class="skeleton-card"></view>
+       <view v-for="i in 6" :key="i" 
+             :class="['skeleton-sticker', { 'rotate-left': i % 2 === 0, 'rotate-right': i % 2 !== 0 }]">
+         <view class="skeleton-shimmer"></view>
+         <view class="skeleton-content-line short"></view>
+         <view class="skeleton-content-line long"></view>
+         <view class="skeleton-footer-dot"></view>
+       </view>
     </view>
 
     <!-- 需求滚动墙 -->
@@ -59,7 +65,8 @@
           class="sticker-card animate-fall-in"
           :style="{ 
             backgroundColor: item.color || getPostItColor(index), 
-            animationDelay: (index % 10) * 0.1 + 's' 
+            animationDelay: (index % 10) * 0.1 + 's',
+            '--rotate': index % 2 === 0 ? '-1.5deg' : '1.5deg'
           }"
           @click="handleCardClick(item)">
           
@@ -435,7 +442,7 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
   box-shadow: 10rpx 10rpx 40rpx rgba(0,0,0,0.03); border-bottom: 6rpx solid rgba(0,0,0,0.08);
   position: relative; overflow: hidden; min-height: 200rpx;
   display: flex; flex-direction: column; justify-content: space-between;
-  transform: rotate(-1deg);
+  transform: rotate(var(--rotate, -1deg));
   opacity: 0;
 
   .urgent-tag {
@@ -564,19 +571,39 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
 
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-.loading-wall { padding: 140rpx 40rpx; display: flex; flex-direction: column; gap: 30rpx; }
-.skeleton-card { height: 400rpx; background: #e0e0e0; border-radius: 30rpx; &.half { height: 300rpx; } }
-
-@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes pop-in { 
-  from { transform: scale(0.8) translateY(40rpx) rotate(0deg); opacity: 0; } 
-  to { transform: scale(1) translateY(0) rotate(var(--rotate, 0deg)); opacity: 1; } 
-}
-.animate-pop-in { 
-  animation: pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
+.loading-wall { 
+  padding: 40rpx; display: flex; flex-direction: column; gap: 40rpx; 
 }
 
-/* 觉醒模式样式 */
+.skeleton-sticker { 
+  height: 280rpx; width: 86%; margin: 0 auto; background: #E5E7EB; border-radius: 24rpx; 
+  position: relative; overflow: hidden; padding: 40rpx; box-sizing: border-box;
+  box-shadow: 10rpx 10rpx 20rpx rgba(0,0,0,0.02);
+  
+  &.rotate-left { transform: rotate(-1.5deg); }
+  &.rotate-right { transform: rotate(1.5deg); }
+
+  .skeleton-shimmer {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.5s infinite;
+  }
+
+  .skeleton-content-line {
+    background: #D1D5DB; border-radius: 10rpx; margin-bottom: 24rpx;
+    &.short { width: 40%; height: 32rpx; }
+    &.long { width: 90%; height: 28rpx; }
+  }
+  
+  .skeleton-footer-dot {
+    position: absolute; bottom: 40rpx; left: 40rpx; width: 100rpx; height: 24rpx; background: #D1D5DB; border-radius: 12rpx;
+  }
+}
+
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+/* 详情卡片样式修复 */
 .detail-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(20px);
   z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 40rpx;
@@ -585,6 +612,7 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
     width: 100%; max-height: 80vh; border-radius: 60rpx; padding: 60rpx;
     display: flex; flex-direction: column; position: relative;
     box-shadow: 0 40rpx 100rpx rgba(0,0,0,0.3); border: 2rpx solid rgba(255,255,255,0.2);
+    box-sizing: border-box;
     
     .detail-header {
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 40rpx;
@@ -593,7 +621,7 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
     }
     
     .detail-content {
-      flex: 1; overflow: hidden;
+      flex: 1; overflow-y: auto;
       .main-text { font-size: 48rpx; font-weight: 900; color: #1a1a1a; line-height: 1.3; }
       .publisher-meta {
         margin-top: 60rpx; padding-top: 40rpx; border-top: 1px solid rgba(0,0,0,0.05);
@@ -611,12 +639,35 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
     
     .detail-footer {
       margin-top: 60rpx; text-align: center;
-      .poke-info { font-size: 24rpx; color: #666; margin-bottom: 30rpx; }
+      .poke-info { font-size: 24rpx; color: #1a1a1a; font-weight: bold; margin-bottom: 30rpx; opacity: 0.5; }
       .mega-poke-btn {
-        background: #1a1a1a; color: #fff; border-radius: 40rpx; padding: 30rpx;
-        font-weight: 900; filter: drop-shadow(0 10rpx 20rpx rgba(0,0,0,0.2));
-        &:active { transform: scale(0.95); }
+        background: #1a1a1a; color: #fff; border-radius: 40rpx; height: 110rpx;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 34rpx; font-weight: 900; box-shadow: 0 20rpx 50rpx rgba(0,0,0,0.25);
+        &:active { transform: scale(0.96); }
       }
+    }
+  }
+
+  /* 留言面板样式 */
+  .detail-panel {
+    background: #fff; width: 100%; border-radius: 60rpx 60rpx 0 0; padding: 60rpx 48rpx;
+    position: absolute; bottom: 0; left: 0; box-sizing: border-box;
+    
+    .panel-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 40rpx;
+      .p-title { font-size: 36rpx; font-weight: 900; color: #1a1a1a; }
+    }
+    
+    .apply-input-wrap {
+      position: relative; margin-bottom: 40rpx;
+      .msg-input { background: #f3f4f6; width: 100%; height: 200rpx; border-radius: 30rpx; padding: 30rpx; font-size: 30rpx; box-sizing: border-box; }
+      .char-count { position: absolute; bottom: 20rpx; right: 30rpx; font-size: 22rpx; color: #999; }
+    }
+    
+    .primary-btn { 
+      background: #1a1a1a; color: #fff; border-radius: 30rpx; height: 100rpx; 
+      display: flex; align-items: center; justify-content: center; font-weight: bold; 
     }
   }
 }
@@ -631,6 +682,10 @@ const loadMore = () => { if (loading.value || teams.value.length === 0) return }
 @keyframes fallIn {
   0% { transform: translateY(-100rpx) rotate(-10deg) scale(0.9); opacity: 0; }
   60% { transform: translateY(10rpx) rotate(2deg) scale(1.02); opacity: 1; }
-  100% { transform: translateY(0) rotate(-1deg) scale(1); opacity: 1; }
+  100% { transform: translateY(0) rotate(var(--rotate, -1.5deg)) scale(1); opacity: 1; }
 }
+
+/* 面板升起动画 */
+.animate-panel-up { animation: panelUp 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
+@keyframes panelUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 </style>
