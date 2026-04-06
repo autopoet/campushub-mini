@@ -24,7 +24,7 @@
         <view class="form-body">
           <view class="input-item">
             <text class="label">昵称</text>
-            <input type="nickname" v-model="formData.nickname" placeholder="获取微信昵称" @blur="onNicknameBlur" />
+            <input type="nickname" v-model="formData.nickname" placeholder="获取微信昵称" placeholder-class="placeholder" @blur="onNicknameBlur" />
           </view>
 
           <view class="input-item">
@@ -37,7 +37,7 @@
           <view class="input-item">
             <text class="label">当前年级</text>
             <picker :range="gradeRange" @change="onGradeChange">
-              <view class="selector-box">{{ formData.grade || '选择年级' }}</view>
+              <view class="selector-box" :class="{ 'placeholder': !formData.grade }">{{ formData.grade || '选择年级' }}</view>
             </picker>
           </view>
 
@@ -56,9 +56,9 @@
             </view>
             
             <view class="dynamic-input-wrap" :key="activeContactType">
-              <input v-if="activeContactType === 'phone'" type="number" v-model="formData.contacts.phone" placeholder="手机号，方便搭子飞速找到你" />
-              <input v-if="activeContactType === 'qq'" type="number" v-model="formData.contacts.qq" placeholder="QQ号，深情交流不迷路" />
-              <input v-if="activeContactType === 'wechat'" type="text" v-model="formData.contacts.wechat" placeholder="微信号，扩列必备" />
+              <input v-if="activeContactType === 'phone'" type="number" v-model="formData.contacts.phone" placeholder="手机号，方便搭子飞速找到你" placeholder-class="placeholder" />
+              <input v-if="activeContactType === 'qq'" type="number" v-model="formData.contacts.qq" placeholder="QQ号，深情交流不迷路" placeholder-class="placeholder" />
+              <input v-if="activeContactType === 'wechat'" type="text" v-model="formData.contacts.wechat" placeholder="微信号，扩列必备" placeholder-class="placeholder" />
             </view>
           </view>
         </view>
@@ -207,12 +207,12 @@ const finish = async () => {
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(25px);
-  border-radius: 48rpx;
-  padding: 60rpx 45rpx;
-  box-shadow: 0 40rpx 100rpx rgba(0,0,0,0.2);
-  min-height: 85vh;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(40px);
+  border-radius: 56rpx;
+  padding: 80rpx 48rpx;
+  box-shadow: 0 50rpx 120rpx rgba(0,0,0,0.15);
+  min-height: calc(100vh - 240rpx);
   display: flex;
   flex-direction: column;
 }
@@ -225,51 +225,53 @@ const finish = async () => {
 }
 
 .header {
-  text-align: center; margin-bottom: 50rpx;
-  .title { font-size: 46rpx; font-weight: 800; color: #1a1a1a; display: block; }
-  .subtitle { font-size: 24rpx; color: #666; margin-top: 12rpx; display: block; }
+  text-align: center; margin-bottom: 60rpx;
+  .title { font-size: 48rpx; font-weight: 800; color: #1a1a1a; display: block; letter-spacing: 2rpx; }
+  .subtitle { font-size: 26rpx; color: #888; margin-top: 16rpx; display: block; }
 }
 
 .avatar-section {
-  display: flex; justify-content: center; margin-bottom: 50rpx;
+  display: flex; justify-content: center; margin-bottom: 70rpx;
   .avatar-btn {
-    width: 170rpx; height: 170rpx; border-radius: 50%; padding: 0; background: #fff; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.1); position: relative;
+    width: 180rpx; height: 180rpx; border-radius: 50%; padding: 0; background: #fff; box-shadow: 0 15rpx 40rpx rgba(0,0,0,0.08); position: relative;
     .avatar { width: 100%; height: 100%; border-radius: 50%; }
-    .camera-icon { position: absolute; bottom: 0; right: 0; background: #764ba2; color: #fff; width: 50rpx; height: 50rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24rpx; border: 4rpx solid #fff; }
+    .camera-icon { position: absolute; bottom: 4rpx; right: 4rpx; background: #764ba2; color: #fff; width: 56rpx; height: 56rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26rpx; border: 6rpx solid #fff; }
   }
 }
 
 .input-item {
-  margin-bottom: 35rpx;
-  .label-row { display: flex; align-items: baseline; margin-bottom: 15rpx; padding-left: 10rpx; }
-  .label { font-size: 26rpx; font-weight: 700; color: #4b5563; }
-  .label-sub { font-size: 20rpx; color: #9ca3af; margin-left: 10rpx; }
-  input, .selector-box { background: rgba(0,0,0,0.03); border-radius: 20rpx; padding: 25rpx 35rpx; font-size: 30rpx; color: #1f2937; }
-  .placeholder { color: #9ca3af; }
+  margin-bottom: 48rpx;
+  .label-row { display: flex; align-items: baseline; margin-bottom: 20rpx; padding-left: 12rpx; }
+  .label { font-size: 28rpx; font-weight: 700; color: #374151; }
+  .label-sub { font-size: 22rpx; color: #9ca3af; margin-left: 12rpx; }
+  input, .selector-box { background: rgba(0,0,0,0.035); border-radius: 24rpx; padding: 30rpx 40rpx; font-size: 32rpx; color: #111827; height: auto; min-height: 1.5em; transition: background 0.3s; }
+  input:focus { background: rgba(0,0,0,0.015); }
+  .placeholder { color: #9ca3af !important; font-weight: 400; font-size: 28rpx; }
 }
 
 .contact-selector {
-  display: flex; gap: 15rpx; margin-bottom: 20rpx;
+  display: flex; gap: 20rpx; margin-bottom: 24rpx;
   .type-pill { 
-    flex: 1; text-align: center; padding: 14rpx 0; background: rgba(0,0,0,0.05); border-radius: 12rpx; font-size: 22rpx; color: #6b7280; position: relative; transition: all 0.2s;
-    &.active { background: #764ba2; color: #fff; font-weight: bold; }
-    &.hasValue:not(.active) { color: #764ba2; background: rgba(118,75,162,0.05); }
-    .dot { position: absolute; top: 6rpx; right: 6rpx; width: 8rpx; height: 8rpx; background: #a5f3fc; border-radius: 50%; }
+    flex: 1; text-align: center; padding: 18rpx 0; background: rgba(0,0,0,0.04); border-radius: 16rpx; font-size: 24rpx; color: #6b7280; position: relative; transition: all 0.3s;
+    &.active { background: #764ba2; color: #fff; font-weight: bold; box-shadow: 0 8rpx 20rpx rgba(118,75,162,0.25); }
+    &.hasValue:not(.active) { color: #764ba2; background: rgba(118,75,162,0.08); }
+    .dot { position: absolute; top: 10rpx; right: 10rpx; width: 10rpx; height: 10rpx; background: #a5f3fc; border-radius: 50%; box-shadow: 0 0 10rpx #a5f3fc; }
   }
 }
+
 .dynamic-input-wrap {
-  input { background: rgba(0,0,0,0.03); border-radius: 20rpx; padding: 25rpx 35rpx; font-size: 30rpx; color: #1f2937; }
+  input { background: rgba(0,0,0,0.035); border-radius: 24rpx; padding: 30rpx 40rpx; font-size: 32rpx; }
 }
 
 .skills-container {
-  display: flex; flex-wrap: wrap; gap: 18rpx; margin-bottom: 40rpx;
-  .skill-pill { padding: 14rpx 32rpx; background: rgba(118,75,162,0.08); color: #764ba2; border-radius: 40rpx; font-size: 26rpx; transition: all 0.2s; &.selected { background: #764ba2; color: #fff; box-shadow: 0 8rpx 20rpx rgba(118,75,162,0.3); } }
+  display: flex; flex-wrap: wrap; gap: 24rpx; margin-bottom: 50rpx;
+  .skill-pill { padding: 16rpx 36rpx; background: rgba(118,75,162,0.08); color: #764ba2; border-radius: 40rpx; font-size: 26rpx; transition: all 0.2s; &.selected { background: #764ba2; color: #fff; box-shadow: 0 10rpx 25rpx rgba(118,75,162,0.3); } }
 }
 
 .custom-add {
-  display: flex; align-items: center; background: rgba(0,0,0,0.03); border-radius: 20rpx; padding: 10rpx 25rpx; margin-bottom: 40rpx;
-  input { flex: 1; background: transparent; font-size: 26rpx; }
-  .add-circle { width: 50rpx; height: 50rpx; background: #764ba2; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32rpx; margin-left: 20rpx; }
+  display: flex; align-items: center; background: rgba(0,0,0,0.03); border-radius: 24rpx; padding: 15rpx 30rpx; margin-bottom: 50rpx;
+  input { flex: 1; background: transparent; font-size: 28rpx; }
+  .add-circle { width: 56rpx; height: 56rpx; background: #764ba2; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36rpx; margin-left: 20rpx; }
 }
 
 .puzzle-illustration {
