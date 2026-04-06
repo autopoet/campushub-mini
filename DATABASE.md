@@ -19,19 +19,24 @@
 存储招募卡片的信息。
 - `_id`: **String**
 - `creatorId`: **String** (关联 users._id)
-- `title`: **String** (竞赛/活动名称)
-- `roleGap`: **String** (角色缺口)
-- `description`: **String** (详细描述)
-- `status`: **Number** (0-招募中, 1-已招满, 2-已失效)
-- `applyCount`: **Number** (当前申请人数)
+- `category`: **String** ('COMPETITION' | 'POSTGRAD' | 'CIVIL' | 'DAILY')
+- `color`: **String** (背景颜色代码)
+- `publisherName`: **String** (冗余存储)
+- `publisherAvatar`: **String** (冗余存储)
+- `school`: **String** (发布校友的所属学校)
+- `pokesCount`: **Number** (原子计数：感兴趣的人数)
 - `createTime`: **Date**
 
-### 3. `applications` (申请记录集合)
+### 3. `pokes` (信号/戳一戳集合)
 双向解锁的核心纽带。
 - `_id`: **String**
-- `teamId`: **String** (关联队伍 ID)
-- `applicantId`: **String** (申请人 OpenID)
-- `creatorId`: **String** (队长 OpenID，为了查询方便冗余存储)
-- `status`: **Number** (0-审批中, 1-已通过-解锁, 2-已拒绝)
-- `applyMsg`: **String** (申请信息/自我介绍)
+- `targetTeamId`: **String** (关联 teams._id)
+- `targetTeamContent`: **String** (需求快照，方便列表展示)
+- `receiverId`: **String** (接收者 OpenID)
+- `receiverName`: **String** (接收者昵称)
+- `receiverAvatar`: **String** (接收者头像)
+- `receiverContacts`: **Object** (接收者同意后回填的联系方式)
+- `senderId`: **String** (发送者 OpenID)
+- `senderInfo`: **Object** (包含 nickname, avatar, contacts, school)
+- `status`: **String** ('pending' | 'accepted' | 'ignored')
 - `createTime`: **Date**

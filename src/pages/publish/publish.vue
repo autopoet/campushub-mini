@@ -1,8 +1,8 @@
 <template>
   <view class="publish-page">
     <view class="safe-header">
-      <view class="title">发布学习动态</view>
-      <view class="subtitle">嘿，找个好搭子，学习不孤单</view>
+      <view class="title">发布学习贴纸</view>
+      <view class="subtitle">寻找志同道合的学霸搭子</view>
     </view>
 
     <!-- 便利贴预览区 -->
@@ -62,9 +62,9 @@ const userStore = useUserStore()
 const submitting = ref(false)
 
 const categories = [
-  { name: 'COMPETITION', label: '竞赛', color: '#E0F2FE' }, 
-  { name: 'POSTGRAD', label: '考研', color: '#FDF2F8' },    
-  { name: 'CIVIL', label: '考公/考编', color: '#F0FDF4' },       
+  { name: 'COMPETITION', label: '竞赛项目', color: '#E0F2FE' }, 
+  { name: 'POSTGRAD', label: '考研上岸', color: '#FDF2F8' },    
+  { name: 'CIVIL', label: '考公考编', color: '#F0FDF4' },       
   { name: 'DAILY', label: '日常学习', color: '#FEFCE8' }        
 ]
 

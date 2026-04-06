@@ -5,19 +5,14 @@
       <view class="header-left" @click="goToProfile">
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
-          <text class="title">寻找搭子</text>
-          <text class="subtitle">志合者，不以山海为远</text>
+          <text class="title">学习搭子广场</text>
+          <text class="subtitle">志同道合，学无止境</text>
         </view>
       </view>
       <view class="header-right">
         <!-- 切换视图按钮 -->
         <view class="action-btn" @click="isWaterfall = !isWaterfall">
           <text class="action-icon">{{ isWaterfall ? '📋' : '🔳' }}</text>
-        </view>
-        <!-- 消息中心按钮 -->
-        <view class="action-btn" @click="goToNotifications">
-          <text class="action-icon">💬</text>
-          <view class="badge" v-if="hasNewSignals"></view>
         </view>
       </view>
     </view>
@@ -41,6 +36,19 @@
       refresher-enabled
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh">
+      <!-- 学术分类切换栏 -->
+      <view class="category-tabs">
+        <scroll-view scroll-x class="tab-scroll" :show-scrollbar="false">
+          <view 
+            v-for="cat in categoryTabs" 
+            :key="cat.name" 
+            class="tab-item"
+            :class="{ active: currentTab === cat.name }"
+            @click="handleTabChange(cat.name)">
+            {{ cat.label }}
+          </view>
+        </scroll-view>
+      </view>
       
       <view :class="['requirement-wall', isWaterfall ? 'waterfall' : 'feed-list']">
         <view 
@@ -85,17 +93,23 @@
       </view>
     </scroll-view>
 
-    <!-- 悬浮发布按钮 -->
-    <view class="fab-btn" @click="goToPublish">
-      <text class="plus">+</text>
+    <!-- 悬浮按钮组 -->
+    <view class="fab-group">
+      <view class="fab-btn msg-btn" @click="goToNotifications">
+        <text class="msg-icon">💬</text>
+        <view class="badge" v-if="hasNewSignals"></view>
+      </view>
+      <view class="fab-btn publish-btn" @click="goToPublish">
+        <text class="plus">+</text>
+      </view>
     </view>
 
     <!-- 注册强制拦截层 -->
     <view v-if="!authLoading && !userStore.isRegistered" class="auth-mask">
       <view class="auth-card">
-        <text class="auth-title">👋 欢迎来到 CampusHub</text>
-        <text class="auth-desc">你需要先完善校友资料才能查看需求广场</text>
-        <button class="auth-btn" @click="goToRegister">去完善资料</button>
+        <text class="auth-title">👋 欢迎加入学习搭子</text>
+        <text class="auth-desc">你需要先完善学习名片才能查看搭子广场</text>
+        <button class="auth-btn" @click="goToRegister">去完善名片</button>
       </view>
     </view>
 
@@ -141,10 +155,24 @@ const isWaterfall = ref(true) // 默认开启瀑布流
 const teams = ref<any[]>([])
 const loading = ref(true)
 const refreshing = ref(false)
-const hasNewSignals = ref(false) // 暂时模拟红点
+const hasNewSignals = ref(false) 
 const authLoading = ref(true)
 const pokingId = ref('') // 正被戳中的卡片ID
 const selectedItem = ref<any>(null) // 被选中预览的项
+
+const currentTab = ref('ALL')
+const categoryTabs = [
+  { name: 'ALL', label: '全部' },
+  { name: 'COMPETITION', label: '项目竞赛' },
+  { name: 'POSTGRAD', label: '考研上岸' },
+  { name: 'CIVIL', label: '考公考编' },
+  { name: 'DAILY', label: '日常学习' }
+]
+
+const handleTabChange = (name: string) => {
+  currentTab.value = name
+  onRefresh()
+}
 
 // 预设高饱和度马卡龙色系（便利贴风格）
 const postItColors = ['#E9D5FF', '#CFFAFE', '#FEF9C3', '#FFDADA', '#DCFCE7']
@@ -169,7 +197,13 @@ const fetchTeams = async () => {
   loading.value = true
   try {
     const db = wx.cloud.database()
-    const { data } = await db.collection('teams')
+    let query = db.collection('teams')
+    
+    if (currentTab.value !== 'ALL') {
+      query = query.where({ category: currentTab.value }) as any
+    }
+
+    const { data } = await query
       .orderBy('createTime', 'desc')
       .limit(20)
       .get()
@@ -282,6 +316,8 @@ const handlePoke = async (item: any) => {
         targetTeamId: item._id,
         targetTeamContent: item.content,
         receiverId: item._openid, // 接收者
+        receiverName: item.publisherName, // 保存接收者姓名
+        receiverAvatar: item.publisherAvatar, // 保存接收者头像
         senderId: userStore.openid, // 发送者
         senderInfo: {
           nickname: userStore.userInfo.nickname,
@@ -289,7 +325,7 @@ const handlePoke = async (item: any) => {
           contacts: userStore.userInfo.contacts,
           school: userStore.userInfo.school
         },
-        status: 'pending', // pending: 待响应, accepted: 已互粉, rejected: 已忽略
+        status: 'pending', 
         createTime: db.serverDate()
       }
     })
@@ -410,10 +446,40 @@ const handlePoke = async (item: any) => {
   100% { transform: scale(1.8) translateY(-40rpx); opacity: 0; }
 }
 
-.fab-btn {
-  position: fixed; bottom: 80rpx; right: 50rpx; width: 120rpx; height: 120rpx; background: #1a1a1a; border-radius: 50%; box-shadow: 0 20rpx 40rpx rgba(0,0,0,0.3);
-  display: flex; align-items: center; justify-content: center; z-index: 99; color: #fff;
-  .plus { font-size: 60rpx; font-weight: 300; }
+.category-tabs {
+  margin-bottom: 30rpx; padding: 0 10rpx;
+  .tab-scroll {
+    white-space: nowrap; width: 100%;
+    .tab-item {
+      display: inline-block; padding: 12rpx 36rpx; margin-right: 20rpx;
+      font-size: 26rpx; font-weight: 800; color: #6b7280;
+      background: #fff; border-radius: 40rpx; transition: all 0.3s;
+      border: 1rpx solid rgba(0,0,0,0.05); box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.02);
+      &.active {
+        background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff;
+        box-shadow: 0 10rpx 20rpx rgba(99,102,241,0.2); border-color: transparent;
+      }
+    }
+  }
+}
+
+.fab-group {
+  position: fixed; bottom: 80rpx; right: 40rpx; display: flex; flex-direction: column; gap: 30rpx; z-index: 99;
+  .fab-btn {
+    width: 108rpx; height: 108rpx; border-radius: 50%; box-shadow: 0 15rpx 35rpx rgba(0,0,0,0.15);
+    display: flex; align-items: center; justify-content: center; color: #fff; transition: transform 0.2s;
+    &:active { transform: scale(0.9); }
+    
+    &.msg-btn { 
+      background: #fff; border: 1rpx solid rgba(0,0,0,0.05); position: relative;
+      .msg-icon { font-size: 40rpx; }
+      .badge { position: absolute; top: 0; right: 0; width: 20rpx; height: 20rpx; background: #ef4444; border-radius: 50%; border: 4rpx solid #fff; }
+    }
+    &.publish-btn {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      .plus { font-size: 60rpx; font-weight: 300; }
+    }
+  }
 }
 
 /* 强拦截层样式 */

@@ -10,8 +10,8 @@
       <!-- 第一步：基础资料 -->
       <view v-if="currentStep === 1">
         <view class="header">
-          <text class="title">完善资料</text>
-          <text class="subtitle">让校园搭子更了解你</text>
+          <text class="title">学习名片</text>
+          <text class="subtitle">让志同道合的搭子了解你</text>
         </view>
 
         <view class="avatar-section">
