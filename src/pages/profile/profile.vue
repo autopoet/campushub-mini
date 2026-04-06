@@ -6,7 +6,7 @@
         <view class="back-btn" @click="goBack">
           <view class="ios-back-arrow"></view>
         </view>
-        <text class="title">{{ isMe ? '个人中心' : '学友资料' }}</text>
+        <text class="title">{{ isMe ? '个人中心' : '伙伴名片' }}</text>
         <view class="placeholder"></view>
       </view>
     </view>
@@ -25,10 +25,10 @@
       <view class="user-info">
         <text class="nickname">{{ displayUser.nickname || '校友' }}</text>
         <view class="tag-row">
-          <text class="tag">{{ displayUser.school || '校友会成员' }}</text>
+          <text class="tag">{{ displayUser.school || '学习伙伴' }}</text>
           <text class="tag gender">{{ displayUser.gender === 1 ? '♂' : '♀' }}</text>
         </view>
-        <view class="bio text-pixel">{{ displayUser.bio || '这个校友很勤奋，还没写自我介绍~' }}</view>
+        <view class="bio text-pixel">{{ displayUser.bio || '这位伙伴很勤奋，还没写自我介绍~' }}</view>
       </view>
 
       <!-- 统计数据 -->
@@ -101,7 +101,7 @@
     <view v-if="showEdit" class="edit-overlay" @click.stop="showEdit = false">
       <view class="edit-panel animate-panel-up" @click.stop>
         <view class="panel-header">
-          <text class="panel-title">设置校友名片</text>
+          <text class="panel-title">设置学习名片</text>
           <text class="close" @click="showEdit = false">×</text>
         </view>
         
@@ -150,7 +150,7 @@
           </view>
         </view>
 
-        <button class="save-btn" @click="saveProfile">同步更新名片</button>
+        <button class="save-btn" @click="saveProfile">保存名片设置</button>
       </view>
     </view>
   </view>
@@ -198,7 +198,7 @@ const tabs = computed(() => [
 interface StatusMap { [key: string]: string }
 const statusMap: StatusMap = {
   pending: '待确认',
-  accepted: '组队成功',
+  accepted: '互通成功',
   rejected: '已谢绝'
 }
 

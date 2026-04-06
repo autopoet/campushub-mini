@@ -2,7 +2,7 @@
   <view class="publish-page">
     <view class="safe-header">
       <view class="title">{{ isEdit ? '编辑学习贴纸' : '发布学习贴纸' }}</view>
-      <view class="subtitle">寻找志同道合的学霸搭子</view>
+      <view class="subtitle">寻找志同道合的学习伙伴</view>
     </view>
 
     <!-- 便利贴预览区 -->
@@ -15,7 +15,7 @@
           placeholder="想要找个什么样的学习搭子？在这里写下你的需求..." 
           maxlength="100" />
         <view class="sketch-footer">
-          <text class="school-tag">@ {{ userStore.userInfo?.school || '学霸认证中' }}</text>
+          <text class="school-tag">@ {{ userStore.userInfo?.school || '正在同步信息' }}</text>
           <text class="count">{{ formData.content.length }}/100</text>
         </view>
       </view>
@@ -91,7 +91,7 @@ const handlePublish = async () => {
   if (!userStore.isContactComplete) {
     uni.showModal({
       title: '开启学习名片',
-      content: '为了让寻找搭子的校友能联系上你，请先补全一种联系方式',
+      content: '为了让寻找伙伴的同学能联系上你，请先补全一种联系方式',
       confirmText: '去补全',
       success: (res) => {
         if (res.confirm) uni.navigateTo({ url: '/pages/register/register' })
@@ -114,7 +114,7 @@ const handlePublish = async () => {
       content: formData.content,
       urgentRole: formData.urgentRole || '未填',
       color: currentColor.value,
-      publisherName: userStore.userInfo?.nickname || '校友',
+      publisherName: userStore.userInfo?.nickname || '同学',
       publisherAvatar: userStore.userInfo?.avatarUrl || '',
       school: userStore.userInfo?.school || '未知学校',
       createTime: db.serverDate()

@@ -26,7 +26,7 @@
 		{
 			"path": "pages/notifications/notifications",
 			"style": {
-				"navigationBarTitleText": "消息中心",
+				"navigationBarTitleText": "我的邀约",
 				"navigationStyle": "custom",
 				"navigationBarBackgroundColor": "#F9FAFB"
 			}

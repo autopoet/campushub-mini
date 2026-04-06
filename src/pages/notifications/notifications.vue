@@ -40,7 +40,7 @@
 
       <view v-else-if="displaySignals.length === 0" class="empty-box">
         <text class="empty-icon">📡</text>
-        <text class="empty-text">暂时还没有{{ activeTab === 'received' ? '收到' : '发出' }}信号哦</text>
+        <text class="empty-text">暂时还没有收到伙伴的联系哦</text>
       </view>
 
       <view v-for="s in displaySignals" :key="s._id" class="swipe-item-outer">
@@ -111,7 +111,7 @@ import { useUserStore } from '@/store/user'
 const userStore = useUserStore()
 const activeTab = ref('received')
 const menuTabs = [
-  { id: 'received', label: '收到的信号' },
+  { id: 'received', label: '收到的邀约' },
   { id: 'sent', label: '我发出的' }
 ]
 

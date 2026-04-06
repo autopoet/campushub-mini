@@ -10,7 +10,7 @@
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
           <text class="title">学习搭子广场</text>
-          <text class="subtitle">找到最懂你的学术拍档</text>
+          <text class="subtitle">寻找志同道合的学习伙伴</text>
         </view>
       </view>
     </view>
@@ -47,7 +47,7 @@
           <input 
             class="ios-input" 
             v-model="searchKeyword" 
-            placeholder="搜索学霸搭子..." 
+            placeholder="搜索学习计划..." 
             @input="onSearchInput"
             placeholder-class="ios-placeholder" />
           <view class="ios-divider"></view>
@@ -390,7 +390,7 @@ const confirmPoke = async () => {
         receiverAvatar: item.publisherAvatar || '',
         status: 'pending',
         senderId: userStore.openid,
-        applyMsg: applyMsg.value || '学霸，带我飞！',
+        applyMsg: applyMsg.value || '希望能和你一起学习！',
         senderInfo: {
           nickname: userStore.userInfo.nickname,
           avatarUrl: userStore.userInfo.avatarUrl,
