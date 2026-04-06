@@ -70,8 +70,8 @@
       <view v-if="currentStep === 2" class="step-content-full">
         <view class="top-content">
           <view class="header">
-            <text class="title">我的技能</text>
-            <text class="subtitle">展示特长，匹配更精准</text>
+            <text class="title">学术名片</text>
+            <text class="subtitle">展示学术专长，匹配更精准</text>
           </view>
 
           <view class="skills-container">
@@ -96,7 +96,7 @@
         </view>
 
         <view class="footer-btns">
-          <button class="primary-btn" :loading="submitting" @click="finish">开启组队之旅</button>
+          <button class="primary-btn" :loading="submitting" @click="finish">开启学习之旅</button>
           <text class="skip-link" @click="finish">暂时跳过</text>
         </view>
       </view>
@@ -145,7 +145,7 @@ const submitting = ref(false)
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
 const gradeRange = ['大一', '大二', '大三', '大四', '研一', '研二', '研三', '博士及以上']
-const skillOptions = ref(['编程', '建模', '文档', 'PPT', '剪辑', '策划', '羽毛球', '自习考研', '开黑', '美食', '旅游', '拍照', '英语'])
+const skillOptions = ref(['数学建模', '算法编程', '雅思/托福', '考研英语', '政治背诵', '申论批改', '行测/逻辑', '法硕', 'GPA刷分', '证书考证'])
 const contactTypes = [{ label: '手机', value: 'phone' }, { label: 'QQ', value: 'qq' }, { label: '微信', value: 'wechat' }]
 
 const formData = reactive({ avatarUrl: '', nickname: '', school: '', grade: '', skills: [] as string[], contacts: { wechat: '', qq: '', phone: '' } })

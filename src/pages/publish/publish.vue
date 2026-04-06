@@ -1,8 +1,8 @@
 <template>
   <view class="publish-container">
     <view class="page-header">
-      <text class="title">发布动态</text>
-      <text class="subtitle">贴一张便利贴到广场上吧</text>
+      <text class="title">发布学习动态</text>
+      <text class="subtitle">让同频的学习搭子找到你</text>
     </view>
 
     <!-- 实时预览卡片 -->
@@ -54,15 +54,14 @@ const userStore = useUserStore()
 const submitting = ref(false)
 
 const categories = [
-  { name: 'MATCH', color: '#E9D5FF' },
-  { name: 'STUDY', color: '#CFFAFE' },
-  { name: 'SPORT', color: '#DCFCE7' },
-  { name: 'LIFE', color: '#FEF9C3' },
-  { name: 'PLAY', color: '#FFDADA' }
+  { name: 'COMPETITION', color: '#E0F2FE' }, // 竞赛：淡蓝
+  { name: 'POSTGRAD', color: '#FDF2F8' },    // 考研：淡紫
+  { name: 'CIVIL', color: '#F0FDF4' },       // 考公考编：淡绿
+  { name: 'DAILY', color: '#FEFCE8' }        // 日常学习：淡黄
 ]
 
-const currentCategory = ref('MATCH')
-const currentColor = ref('#E9D5FF')
+const currentCategory = ref('COMPETITION')
+const currentColor = ref('#E0F2FE')
 
 const formData = reactive({
   content: '',

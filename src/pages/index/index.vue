@@ -58,7 +58,7 @@
       <!-- 空态展示 -->
       <view v-if="!loading && teams.length === 0" class="empty-state">
         <text class="empty-icon">🏜️</text>
-        <text class="empty-text">广场空荡荡，快去发一条吧</text>
+        <text class="empty-text">广场空荡荡，快发布你的第一个学习需求吧</text>
       </view>
     </scroll-view>
 
