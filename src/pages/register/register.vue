@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
 import schoolList from '@/static/schools.json'
 
@@ -149,6 +149,25 @@ const skillOptions = ref(['数学建模', '算法编程', '雅思/托福', '资�
 const contactTypes = [{ label: '手机', value: 'phone' }, { label: 'QQ', value: 'qq' }, { label: '微信', value: 'wechat' }]
 
 const formData = reactive({ avatarUrl: '', nickname: '', school: '', grade: '', skills: [] as string[], contacts: { wechat: '', qq: '', phone: '' } })
+
+onMounted(() => {
+  // 资料回显：如果 store 里已经有用户信息，直接塞进表单
+  if (userStore.userInfo) {
+    const { avatarUrl, nickname, school, grade, skills, contacts } = userStore.userInfo
+    formData.avatarUrl = avatarUrl || ''
+    formData.nickname = nickname || ''
+    formData.school = school || ''
+    formData.grade = grade || ''
+    formData.skills = skills ? [...skills] : []
+    if (contacts) {
+      formData.contacts = { 
+        wechat: contacts.wechat || '', 
+        qq: contacts.qq || '', 
+        phone: contacts.phone || '' 
+      }
+    }
+  }
+})
 
 const filteredSchools = computed(() => {
   if (!searchKey.value) return []

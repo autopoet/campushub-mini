@@ -33,7 +33,7 @@
           v-for="(item, index) in teams" 
           :key="item._id" 
           class="post-it-card animate-pop-in"
-          :style="{ backgroundColor: getPostItColor(index), transform: `rotate(${getRandomRotate(index)}deg)` }"
+          :style="{ backgroundColor: item.color || getPostItColor(index), transform: `rotate(${getRandomRotate(index)}deg)` }"
           @click="handlePoke(item)">
           
           <!-- 标签：急缺角色 -->
