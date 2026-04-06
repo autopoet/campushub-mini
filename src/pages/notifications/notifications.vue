@@ -198,19 +198,37 @@ const onRefresh = () => {
 }
 
 const handleAccept = async (s: any) => {
+  // 🛡️ MVP 强化：回应者也必须名片完整，否则无法分享联系方式
+  if (!userStore.isProfileComplete) {
+    uni.showModal({
+      title: '完善名片后互通',
+      content: '补全昵称、学校及任一联系方式后，对方才能看到你的联络信息哦',
+      confirmText: '去完善',
+      success: (res) => { if (res.confirm) uni.navigateTo({ url: '/pages/profile/profile' }) }
+    })
+    return
+  }
+  
   uni.showLoading({ title: '处理中' })
   try {
-    const db = wx.cloud.database()
-    await db.collection('pokes').doc(s._id).update({
-      data: { 
-        status: 'accepted',
-        receiverContacts: userStore.userInfo.contacts
+    // 💡 核心改进：使用云函数绕过数据库权限限制
+    const res = await wx.cloud.callFunction({
+      name: 'signalAction',
+      data: {
+        action: 'accept',
+        id: s._id,
+        contacts: userStore.userInfo.contacts
       }
-    })
-    s.status = 'accepted'
-    uni.showToast({ title: '互通成功', icon: 'success' })
-  } catch (e) {
-    uni.showToast({ title: '操作失败', icon: 'none' })
+    }) as any
+    
+    if (res.result && res.result.success !== false) {
+      s.status = 'accepted'
+      uni.showToast({ title: '互通成功', icon: 'success' })
+    } else {
+      throw new Error(res.result.msg || '操作失败')
+    }
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '操作失败', icon: 'none' })
   }
 }
 
@@ -221,11 +239,21 @@ const handleIgnore = async (s: any) => {
     confirmText: '婉拒',
     success: async (res) => {
       if (res.confirm) {
-        const db = wx.cloud.database()
-        await db.collection('pokes').doc(s._id).update({
-          data: { status: 'ignored' }
-        })
-        s.status = 'ignored'
+        uni.showLoading({ title: '处理中' })
+        try {
+          const cloudRes = await wx.cloud.callFunction({
+            name: 'signalAction',
+            data: { action: 'ignore', id: s._id }
+          }) as any
+          if (cloudRes.result && cloudRes.result.success !== false) {
+            s.status = 'ignored'
+            uni.showToast({ title: '已婉拒', icon: 'success' })
+          } else {
+            throw new Error(cloudRes.result.msg || '操作失败')
+          }
+        } catch (e: any) {
+          uni.showToast({ title: e.message || '操作失败', icon: 'none' })
+        }
       }
     }
   })
@@ -287,13 +315,19 @@ const handleDelete = async (s: any) => {
       if (res.confirm) {
         uni.showLoading({ title: '清理中' })
         try {
-          const db = wx.cloud.database()
-          await db.collection('pokes').doc(s._id).remove()
-          signals.value = signals.value.filter(item => item._id !== s._id)
-          swipedId.value = null
-          uni.showToast({ title: '已清理', icon: 'success' })
-        } catch (e) {
-          uni.showToast({ title: '清理失败', icon: 'none' })
+          const cloudRes = await wx.cloud.callFunction({
+            name: 'signalAction',
+            data: { action: 'delete', id: s._id }
+          }) as any
+          if (cloudRes.result && cloudRes.result.success !== false) {
+            signals.value = signals.value.filter(item => item._id !== s._id)
+            swipedId.value = null
+            uni.showToast({ title: '已清理', icon: 'success' })
+          } else {
+            throw new Error(cloudRes.result.msg || '清理失败')
+          }
+        } catch (e: any) {
+          uni.showToast({ title: e.message || '清理失败', icon: 'none' })
         }
       }
     }

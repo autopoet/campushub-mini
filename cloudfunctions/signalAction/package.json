@@ -1,0 +1,9 @@
+{
+  "name": "signalAction",
+  "version": "1.0.0",
+  "description": "处理消息邀约中心的所有变更操作（权限绕过）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
