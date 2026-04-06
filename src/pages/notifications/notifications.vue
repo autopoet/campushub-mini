@@ -66,8 +66,11 @@
         <view v-if="s.status === 'accepted'" class="contact-card">
           <view class="contact-header">🎉 成功互通！点击复制联系方式</view>
           <view class="contact-row">
-            <view v-if="getContacts(s).wechat" class="c-item" @click="copy(getContacts(s).wechat, '微信')">微信: {{ getContacts(s).wechat }}</view>
-            <view v-if="getContacts(s).phone" class="c-item" @click="copy(getContacts(s).phone, '手机')">手机: {{ getContacts(s).phone }}</view>
+            <view v-for="(val, key) in getContacts(s)" :key="key">
+              <view v-if="val" class="c-item" @click="copy(val, key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ')">
+                {{ key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ' }}: {{ val }}
+              </view>
+            </view>
           </view>
         </view>
 
@@ -212,8 +215,10 @@ const handleIgnore = async (s: any) => {
 }
 
 const getContacts = (s: any) => {
-  if (activeTab.value === 'received') return s.senderInfo.contacts || {}
-  return s.receiverContacts || {}
+  const raw = activeTab.value === 'received' ? s.senderInfo.contacts : s.receiverContacts;
+  if (!raw) return {};
+  if (typeof raw === 'string') return { wechat: raw }; // 旧版兼容
+  return raw;
 }
 
 const copy = (val: string, label: string) => {
