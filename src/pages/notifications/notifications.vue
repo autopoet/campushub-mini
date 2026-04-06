@@ -27,7 +27,13 @@
       </view>
 
     <!-- 信号列表 -->
-    <scroll-view scroll-y class="signal-list" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="onRefresh">
+    <scroll-view 
+      scroll-y 
+      class="signal-list" 
+      :refresher-enabled="true" 
+      :refresher-triggered="refreshing" 
+      @refresherrefresh="onRefresh"
+      @scroll="closeSwipes">
       <view v-if="loading && signals.length === 0" class="loading-box">
         <view class="ios-spinner"></view>
       </view>
@@ -37,50 +43,61 @@
         <text class="empty-text">暂时还没有{{ activeTab === 'received' ? '收到' : '发出' }}信号哦</text>
       </view>
 
-      <view v-for="s in displaySignals" :key="s._id" 
-            class="signal-card animate-slide-up"
-            :class="[s.status]">
-        <view class="card-top">
-          <image class="sender-avatar" :src="activeTab === 'received' ? s.senderInfo.avatarUrl : (s.receiverAvatar || defaultAvatar)" />
-          <view class="sender-meta">
-            <view class="name-row">
-              <text class="sender-name">{{ activeTab === 'received' ? s.senderInfo.nickname : (s.receiverName || '校友') }}</text>
-              <text v-if="activeTab === 'received' && s.senderInfo.school" class="school-tag">@ {{ s.senderInfo.school }}</text>
-            </view>
-            <text class="time">{{ formatTime(s.createTime) }}</text>
-          </view>
-          <view class="status-badge" :class="s.status">{{ statusMap[s.status] }}</view>
+      <view v-for="s in displaySignals" :key="s._id" class="swipe-item-outer">
+        <!-- 下层删除按钮 -->
+        <view class="swipe-delete-btn" @click="handleDelete(s)">
+          <text class="del-text">删除</text>
         </view>
 
-        <view class="target-bubble">
-          <text class="target-label">{{ activeTab === 'received' ? '他在贴纸留言：' : '你对贴纸感兴趣：' }}</text>
-          <text class="target-content">“{{ s.targetTeamContent }}”</text>
+        <!-- 上层卡片 -->
+        <view 
+          class="signal-card animate-slide-up"
+          :class="[s.status, { 'is-swiped': swipedId === s._id }]"
+          @touchstart="onTouchStart($event, s._id)"
+          @touchend="onTouchEnd($event, s._id)">
           
-          <view v-if="s.applyMsg" class="user-apply-msg">
-            <text class="msg-prefix">✉️ 投递留言：</text>
-            <text class="msg-text">{{ s.applyMsg }}</text>
+          <view class="card-top">
+            <image class="sender-avatar" :src="activeTab === 'received' ? s.senderInfo.avatarUrl : (s.receiverAvatar || defaultAvatar)" />
+            <view class="sender-meta">
+              <view class="name-row">
+                <text class="sender-name">{{ activeTab === 'received' ? s.senderInfo.nickname : (s.receiverName || '校友') }}</text>
+                <text v-if="activeTab === 'received' && s.senderInfo.school" class="school-tag">@ {{ s.senderInfo.school }}</text>
+              </view>
+              <text class="time">{{ formatTime(s.createTime) }}</text>
+            </view>
+            <view class="status-badge" :class="s.status">{{ statusMap[s.status] }}</view>
           </view>
-        </view>
 
-        <!-- 只有在互通后才显示联系方式 -->
-        <view v-if="s.status === 'accepted'" class="contact-card">
-          <view class="contact-header">🎉 成功互通！点击复制联系方式</view>
-          <view class="contact-row">
-            <view v-for="(val, key) in getContacts(s)" :key="key">
-              <view v-if="val" class="c-item" @click="copy(val, key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ')">
-                {{ key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ' }}: {{ val }}
+          <view class="target-bubble">
+            <text class="target-label">{{ activeTab === 'received' ? '他在贴纸留言：' : '你对贴纸感兴趣：' }}</text>
+            <text class="target-content">“{{ s.targetTeamContent }}”</text>
+            
+            <view v-if="s.applyMsg" class="user-apply-msg">
+              <text class="msg-prefix">✉️ 投递留言：</text>
+              <text class="msg-text">{{ s.applyMsg }}</text>
+            </view>
+          </view>
+
+          <!-- 只有在互通后才显示联系方式 -->
+          <view v-if="s.status === 'accepted'" class="contact-card">
+            <view class="contact-header">🎉 成功互通！点击复制联系方式</view>
+            <view class="contact-row">
+              <view v-for="(val, key) in getContacts(s)" :key="key">
+                <view v-if="val" class="c-item" @click="copy(val, key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ')">
+                  {{ key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ' }}: {{ val }}
+                </view>
               </view>
             </view>
           </view>
-        </view>
 
-        <view v-if="activeTab === 'received' && s.status === 'pending'" class="card-actions">
-          <button class="accept-btn" @click="handleAccept(s)">回应并解锁</button>
-          <text class="ignore-btn" @click="handleIgnore(s)">婉拒</text>
-        </view>
-        
-        <view v-else-if="activeTab === 'sent' && s.status === 'pending'" class="sent-pending-tip">
-          <text class="tip-text">信号已发出，等待学霸回复中...</text>
+          <view v-if="activeTab === 'received' && s.status === 'pending'" class="card-actions">
+            <button class="accept-btn" @click="handleAccept(s)">回应并解锁</button>
+            <text class="ignore-btn" @click="handleIgnore(s)">婉拒</text>
+          </view>
+          
+          <view v-else-if="activeTab === 'sent' && s.status === 'pending'" class="sent-pending-tip">
+            <text class="tip-text">信号已发出，等待学霸回复中...</text>
+          </view>
         </view>
       </view>
     </scroll-view>
@@ -229,6 +246,60 @@ const copy = (val: string, label: string) => {
   })
 }
 
+// 侧滑逻辑
+const startX = ref(0)
+const startY = ref(0)
+const swipedId = ref<string | null>(null)
+
+const onTouchStart = (e: any, id: string) => {
+  startX.value = e.touches[0].clientX
+  startY.value = e.touches[0].clientY
+}
+
+const onTouchEnd = (e: any, id: string) => {
+  const endX = e.changedTouches[0].clientX
+  const endY = e.changedTouches[0].clientY
+  const deltaX = startX.value - endX
+  const deltaY = startY.value - endY
+  
+  // 只有当横向位移显著大于纵向位移时，才触发侧滑 (防止滚动干扰)
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+    if (deltaX > 50) {
+      swipedId.value = id
+    } else if (deltaX < -50) {
+      if (swipedId.value === id) swipedId.value = null
+    }
+  }
+}
+
+const closeSwipes = () => {
+  if (swipedId.value) swipedId.value = null
+}
+
+const handleDelete = async (s: any) => {
+  uni.showModal({
+    title: '确认删除',
+    content: '删除后此记录将永久从云端移除',
+    confirmColor: '#FF3B30',
+    cancelText: '取消',
+    confirmText: '删除',
+    success: async (res) => {
+      if (res.confirm) {
+        uni.showLoading({ title: '清理中' })
+        try {
+          const db = wx.cloud.database()
+          await db.collection('pokes').doc(s._id).remove()
+          signals.value = signals.value.filter(item => item._id !== s._id)
+          swipedId.value = null
+          uni.showToast({ title: '已清理', icon: 'success' })
+        } catch (e) {
+          uni.showToast({ title: '清理失败', icon: 'none' })
+        }
+      }
+    }
+  })
+}
+
 const formatTime = (time: any) => {
   if (!time) return '刚刚'
   const date = new Date(time)
@@ -282,9 +353,14 @@ const formatTime = (time: any) => {
 .signal-list { height: calc(100vh - 250rpx); padding: 20rpx 40rpx; box-sizing: border-box; }
 
 .signal-card {
-  background: #fff; border-radius: 32rpx; padding: 40rpx; margin-bottom: 30rpx;
+  background: #fff; border-radius: 32rpx; padding: 40rpx;
   box-shadow: 0 10rpx 40rpx rgba(0,0,0,0.03); border: 2rpx solid rgba(0,0,0,0.03); 
-  transition: all 0.3s; position: relative; overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1); 
+  position: relative; overflow: hidden; z-index: 2;
+  
+  &.is-swiped {
+    transform: translateX(-160rpx) rotate(-1deg);
+  }
   
   // 模拟便利贴的边缘
   &::before {
@@ -341,6 +417,20 @@ const formatTime = (time: any) => {
   text-align: center; padding-top: 15vh;
   .empty-icon { font-size: 100rpx; display: block; margin-bottom: 30rpx; }
   .empty-text { font-size: 28rpx; color: #9ca3af; }
+}
+
+.swipe-item-outer {
+  position: relative; margin-bottom: 30rpx; overflow: hidden;
+  border-radius: 32rpx; background: #FF3B30; // 确保圆角处不露底色
+}
+
+.swipe-delete-btn {
+  position: absolute; top: 0; right: 0; width: 160rpx; height: 100%;
+  background: #FF3B30; display: flex; align-items: center; justify-content: center;
+  z-index: 1; 
+  
+  .del-text { color: #fff; font-size: 26rpx; font-weight: 900; }
+  &:active { background: #E03127; }
 }
 
 @keyframes slideUp { from { opacity: 0; transform: translateY(20rpx); } to { opacity: 1; transform: translateY(0); } }
