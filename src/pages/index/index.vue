@@ -5,13 +5,20 @@
       <view class="header-left" @click="goToProfile">
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
-          <text class="title">学习搭子 [验证-MINI]</text>
+          <text class="title">CampusHub | 广场</text>
           <text class="subtitle">找到你的学术合伙人</text>
         </view>
       </view>
-      <view class="header-right" @click="goToNotifications">
-        <view class="msg-icon">🛰️</view>
-        <view class="badge" v-if="hasNewSignals"></view>
+      <view class="header-right">
+        <!-- 切换视图按钮 -->
+        <view class="action-btn" @click="isWaterfall = !isWaterfall">
+          <text class="action-icon">{{ isWaterfall ? '📋' : '🔳' }}</text>
+        </view>
+        <!-- 消息中心按钮 -->
+        <view class="action-btn" @click="goToNotifications">
+          <text class="action-icon">💬</text>
+          <view class="badge" v-if="hasNewSignals"></view>
+        </view>
       </view>
     </view>
 
@@ -45,7 +52,7 @@
             transform: `rotate(${getRandomRotate(index)}deg)`,
             animationDelay: `${index * 0.1}s` 
           }"
-          @click="handlePoke(item)">
+          @click="handleCardClick(item)">
           
           <!-- 标签：急缺角色 -->
           <view class="urgent-tag">急缺: {{ item.urgentRole }}</view>
@@ -55,15 +62,14 @@
             {{ item.content }}
           </view>
           
-          <!-- 底部：学校信息与交互 -->
+          <!-- 底部：学校信息与分类标签 -->
           <view class="card-footer">
             <view class="publisher-info">
-              <text class="school">{{ item.school || '校外精英' }}</text>
+              <text class="school">{{ item.school || '校友' }}</text>
               <text class="time">{{ formatTime(item.createTime) }}</text>
             </view>
-            <view class="poke-btn">
-              <text v-if="item.pokesCount > 0" class="hot-count">{{ item.pokesCount }}</text>
-              戳他 🖐️
+            <view class="category-badge">
+              <text class="cat-text">{{ item.category }}</text>
             </view>
           </view>
 
@@ -92,6 +98,37 @@
         <button class="auth-btn" @click="goToRegister">去完善资料</button>
       </view>
     </view>
+
+    <!-- 🌟 酷炫觉醒预览层 -->
+    <view v-if="selectedItem" class="detail-overlay" @click.self="selectedItem = null">
+      <view class="detail-card animate-zoom-in" :style="{ backgroundColor: selectedItem.color }">
+        <view class="detail-header">
+          <text class="detail-cat">任务类型：{{ selectedItem.category }}</text>
+          <text class="close-btn" @click="selectedItem = null">×</text>
+        </view>
+        
+        <scroll-view scroll-y class="detail-content">
+          <text class="main-text">{{ selectedItem.content }}</text>
+          <view class="publisher-meta">
+            <text class="pub-label">发布人信息</text>
+            <view class="pub-row">
+              <image class="pub-avatar" :src="selectedItem.publisherAvatar || defaultAvatar" />
+              <view class="pub-text">
+                <text class="pub-name">{{ selectedItem.publisherName || '校友' }}</text>
+                <text class="pub-school">{{ selectedItem.school }}</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+
+        <view class="detail-footer">
+          <view class="poke-info">已有 {{ selectedItem.pokesCount || 0 }} 人发出了组队信号</view>
+          <button class="mega-poke-btn" @click="confirmPoke">
+            <text>戳他 🖐️</text>
+          </button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -100,13 +137,14 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
-const isWaterfall = ref(false) // 默认大图列表
+const isWaterfall = ref(true) // 默认开启瀑布流
 const teams = ref<any[]>([])
 const loading = ref(true)
 const refreshing = ref(false)
 const hasNewSignals = ref(false) // 暂时模拟红点
 const authLoading = ref(true)
 const pokingId = ref('') // 正被戳中的卡片ID
+const selectedItem = ref<any>(null) // 被选中预览的项
 
 // 预设高饱和度马卡龙色系（便利贴风格）
 const postItColors = ['#E9D5FF', '#CFFAFE', '#FEF9C3', '#FFDADA', '#DCFCE7']
@@ -175,6 +213,19 @@ const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
 const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
 const goToNotifications = () => uni.navigateTo({ url: '/pages/notifications/notifications' })
 const goToProfile = () => uni.navigateTo({ url: '/pages/profile/profile' })
+
+// 点击卡片进入觉醒预览
+const handleCardClick = (item: any) => {
+  selectedItem.value = item
+}
+
+// 在预览中确认投递
+const confirmPoke = () => {
+  if (selectedItem.value) {
+    handlePoke(selectedItem.value)
+    // 投递成功后可以选择关闭预览
+  }
+}
 
 // 底部加载更多 (待分页功能完善)
 const loadMore = () => {
@@ -262,14 +313,17 @@ const handlePoke = async (item: any) => {
 
   .header-left { 
     flex: 1; display: flex; align-items: center; gap: 20rpx; 
-    .mini-avatar { width: 88rpx; height: 88rpx; border-radius: 28rpx; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
+    .mini-avatar { width: 92rpx; height: 92rpx; border-radius: 50%; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
     .title-group { display: flex; flex-direction: column; }
   }
   .header-right { 
-    width: 90rpx; height: 90rpx; display: flex; align-items: center; justify-content: center; position: relative;
-    background: #fff; border-radius: 28rpx; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.03);
-    .msg-icon { font-size: 40rpx; }
-    .badge { position: absolute; top: -5rpx; right: -5rpx; width: 22rpx; height: 22rpx; background: #ef4444; border-radius: 50%; border: 6rpx solid #fff; }
+    display: flex; align-items: center; gap: 20rpx;
+    .action-btn { 
+      width: 80rpx; height: 80rpx; display: flex; align-items: center; justify-content: center; position: relative;
+      background: #fff; border-radius: 24rpx; box-shadow: 0 8rpx 20rpx rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);
+      .action-icon { font-size: 36rpx; }
+      .badge { position: absolute; top: -5rpx; right: -5rpx; width: 22rpx; height: 22rpx; background: #ef4444; border-radius: 50%; border: 6rpx solid #fff; }
+    }
   }
   .title { font-size: 52rpx; font-weight: 900; color: #1a1a1a; display: block; letter-spacing: 2rpx; }
   .subtitle { font-size: 24rpx; color: #9ca3af; margin-top: 10rpx; display: block; }
@@ -304,11 +358,9 @@ const handlePoke = async (item: any) => {
       .school { font-size: 24rpx; font-weight: bold; color: #333; display: block; }
       .time { font-size: 20rpx; color: #666; margin-top: 5rpx; }
     }
-      .poke-btn { 
-      background: #fff; padding: 10rpx 25rpx; border-radius: 40rpx; font-size: 24rpx; font-weight: bold; border: 4rpx solid #1a1a1a; transition: all 0.2s; 
-      display: flex; align-items: center; gap: 8rpx;
-      &:active { transform: scale(0.9); } 
-      .hot-count { color: #ef4444; font-size: 20rpx; font-weight: 900; background: rgba(239, 68, 68, 0.1); padding: 0 10rpx; border-radius: 6rpx; }
+    .category-badge { 
+      background: rgba(255,255,255,0.4); padding: 8rpx 20rpx; border-radius: 12rpx; border: 2rpx solid rgba(0,0,0,0.05);
+      .cat-text { color: #1a1a1a; font-size: 20rpx; font-weight: 800; }
     }
   }
 
@@ -361,4 +413,52 @@ const handlePoke = async (item: any) => {
 .animate-pop-in { 
   animation: pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
 }
+
+/* 觉醒模式样式 */
+.detail-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(20px);
+  z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 40rpx;
+  
+  .detail-card {
+    width: 100%; max-height: 80vh; border-radius: 60rpx; padding: 60rpx;
+    display: flex; flex-direction: column; position: relative;
+    box-shadow: 0 40rpx 100rpx rgba(0,0,0,0.3); border: 2rpx solid rgba(255,255,255,0.2);
+    
+    .detail-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 40rpx;
+      .detail-cat { font-size: 22rpx; font-weight: 900; background: rgba(0,0,0,0.1); padding: 8rpx 20rpx; border-radius: 12rpx; }
+      .close-btn { font-size: 60rpx; color: #1a1a1a; line-height: 1; }
+    }
+    
+    .detail-content {
+      flex: 1; overflow: hidden;
+      .main-text { font-size: 48rpx; font-weight: 900; color: #1a1a1a; line-height: 1.3; }
+      .publisher-meta {
+        margin-top: 60rpx; padding-top: 40rpx; border-top: 1px solid rgba(0,0,0,0.05);
+        .pub-label { font-size: 20rpx; color: #666; margin-bottom: 20rpx; display: block; }
+        .pub-row {
+          display: flex; align-items: center; gap: 20rpx;
+          .pub-avatar { width: 80rpx; height: 80rpx; border-radius: 50%; }
+          .pub-text {
+            .pub-name { font-size: 28rpx; font-weight: bold; display: block; }
+            .pub-school { font-size: 22rpx; color: #666; }
+          }
+        }
+      }
+    }
+    
+    .detail-footer {
+      margin-top: 60rpx; text-align: center;
+      .poke-info { font-size: 24rpx; color: #666; margin-bottom: 30rpx; }
+      .mega-poke-btn {
+        background: #1a1a1a; color: #fff; border-radius: 40rpx; padding: 30rpx;
+        font-weight: 900; filter: drop-shadow(0 10rpx 20rpx rgba(0,0,0,0.2));
+        &:active { transform: scale(0.95); }
+      }
+    }
+  }
+}
+
+@keyframes zoomIn { from { opacity: 0; transform: scale(0.8) translateY(100rpx); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.animate-zoom-in { animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 </style>
