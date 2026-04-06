@@ -27,6 +27,7 @@
 			"path": "pages/notifications/notifications",
 			"style": {
 				"navigationBarTitleText": "消息中心",
+				"navigationStyle": "custom",
 				"navigationBarBackgroundColor": "#F9FAFB"
 			}
 		},

@@ -2,21 +2,15 @@
   <view class="container" :style="{ paddingTop: headerSafeHeight + 'px' }">
     <!-- 顶部导航栏 -->
     <view v-if="!authLoading" class="page-header" :style="{ 
-      paddingTop: statusBarHeight + 'px', 
+      paddingTop: statusBarHeight + 10 + 'px', 
       paddingRight: menuButtonWidth + 20 + 'px',
-      height: navBarHeight + 'px'
+      minHeight: navBarHeight + 60 + 'px'
     }">
       <view class="header-left" @click="goToProfile">
         <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
         <view class="title-group">
           <text class="title">学习搭子广场</text>
-          <text class="subtitle">志同道合，学无止境</text>
-        </view>
-      </view>
-      <view class="header-right">
-        <!-- 切换视图按钮 -->
-        <view class="action-btn" @click="isWaterfall = !isWaterfall">
-          <text class="action-icon">{{ isWaterfall ? '📋' : '🔳' }}</text>
+          <text class="subtitle">找到最懂你的学术拍档</text>
         </view>
       </view>
     </view>
@@ -29,7 +23,7 @@
 
     <!-- 骨架屏/加载中 -->
     <view v-if="!authLoading && loading && teams.length === 0" class="loading-wall">
-       <view v-for="i in 4" :key="i" class="skeleton-card" :class="{ 'half': isWaterfall }"></view>
+       <view v-for="i in 4" :key="i" class="skeleton-card"></view>
     </view>
 
     <!-- 需求滚动墙 -->
@@ -40,24 +34,25 @@
       refresher-enabled
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh">
-      <!-- 极简搜索与筛选区 -->
-      <view class="search-filter-section">
-        <view class="search-bar-wrap">
-          <text class="search-icon">🔍</text>
+      <!-- iOS 风格极简搜索组 -->
+      <view class="ios-search-section">
+        <view class="search-bar-integrated">
+          <view class="ios-search-icon-css"></view>
           <input 
-            class="search-input" 
+            class="ios-input" 
             v-model="searchKeyword" 
-            placeholder="搜索关键词（竞赛/考研...）" 
+            placeholder="搜索学霸搭子..." 
             @input="onSearchInput"
-            placeholder-class="placeholder" />
-        </view>
-        <view class="filter-btn" @click="showFilterDrawer = true">
-          <text class="filter-icon">⚙️</text>
-          <view class="filter-dot" v-if="hasActiveFilter"></view>
+            placeholder-class="ios-placeholder" />
+          <view class="ios-divider"></view>
+          <view class="ios-filter-trigger" @click="showFilterDrawer = true">
+            <text class="filter-label">筛选</text>
+            <view class="active-dot" v-if="hasActiveFilter"></view>
+          </view>
         </view>
       </view>
       
-      <view :class="['requirement-wall', isWaterfall ? 'waterfall' : 'feed-list']">
+      <view :class="['requirement-wall', 'single-column']">
         <view 
           v-for="(item, index) in teams" 
           :key="item._id" 
@@ -185,10 +180,30 @@
 
         <view class="detail-footer">
           <view class="poke-info">已有 {{ selectedItem.pokesCount || 0 }} 人发出了组队信号</view>
-          <button class="mega-poke-btn" @click="confirmPoke">
+          <button class="mega-poke-btn" @click="handlePoke(selectedItem)">
             <text>戳他 🖐️</text>
           </button>
         </view>
+      </view>
+    </view>
+
+    <!-- 🌟 投递留言面板 -->
+    <view v-if="showApplyPanel" class="detail-overlay" @click.self="showApplyPanel = false">
+      <view class="detail-panel animate-panel-up" @click.stop style="min-height: 400rpx; padding-bottom: 60rpx;">
+        <view class="panel-header">
+          <text class="p-title">你想对他说点什么？</text>
+          <view class="close-btn" @click="showApplyPanel = false">✕</view>
+        </view>
+        <view class="apply-input-wrap">
+          <textarea 
+            class="msg-input" 
+            v-model="applyMsg" 
+            placeholder="简短的留言能提高成功率哦 (30字以内)" 
+            maxlength="30"
+            auto-focus />
+          <text class="char-count">{{ applyMsg.length }}/30</text>
+        </view>
+        <button class="primary-btn" @click="confirmPoke">发送学习信号</button>
       </view>
     </view>
   </view>
@@ -200,7 +215,6 @@ import { useUserStore } from '@/store/user'
 import { onShow } from '@dcloudio/uni-app'
 
 const userStore = useUserStore()
-const isWaterfall = ref(true) // 默认开启瀑布流
 const teams = ref<any[]>([])
 const loading = ref(true)
 const refreshing = ref(false)
@@ -208,6 +222,8 @@ const hasNewSignals = ref(false)
 const authLoading = ref(true)
 const pokingId = ref('') // 正被戳中的卡片ID
 const selectedItem = ref<any>(null) // 被选中预览的项
+const showApplyPanel = ref(false)
+const applyMsg = ref('')
 
 const searchKeyword = ref('')
 const showFilterDrawer = ref(false)
@@ -224,11 +240,18 @@ const categoryTabs = [
 const hasActiveFilter = computed(() => currentTab.value !== 'ALL' || schoolFilter.value !== 'ALL')
 
 const onSearchInput = () => {
-  // 抖动处理（可选）在这里直接实时触发搜索
-  fetchTeams()
+  clearTimeout((onSearchInput as any).timer)
+  ;(onSearchInput as any).timer = setTimeout(() => {
+    fetchTeams()
+  }, 500)
 }
 
 const applyFilters = () => {
+  if (schoolFilter.value === 'SAME' && !userStore.userInfo?.school) {
+    uni.showToast({ title: '请先在名片中填写所属学校', icon: 'none' })
+    schoolFilter.value = 'ALL'
+    return
+  }
   showFilterDrawer.value = false
   onRefresh()
 }
@@ -237,11 +260,6 @@ const resetFilters = () => {
   currentTab.value = 'ALL'
   schoolFilter.value = 'ALL'
   searchKeyword.value = ''
-  onRefresh()
-}
-
-const handleTabChange = (name: string) => {
-  currentTab.value = name
   onRefresh()
 }
 
@@ -254,15 +272,12 @@ const headerSafeHeight = ref(0)
 const initNavigation = () => {
   const sys = uni.getSystemInfoSync()
   statusBarHeight.value = sys.statusBarHeight || 0
-  
-  // 获取胶囊位置
   const menu = uni.getMenuButtonBoundingClientRect()
   menuButtonWidth.value = sys.windowWidth - menu.left
   navBarHeight.value = (menu.top - sys.statusBarHeight!) * 2 + menu.height
-  headerSafeHeight.value = statusBarHeight.value + navBarHeight.value
+  headerSafeHeight.value = statusBarHeight.value + navBarHeight.value + 60
 }
 
-// 预设高饱和度马卡龙色系（便利贴风格）
 const postItColors = ['#E9D5FF', '#CFFAFE', '#FEF9C3', '#FFDADA', '#DCFCE7']
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
@@ -285,33 +300,13 @@ const fetchTeams = async () => {
   loading.value = true
   try {
     const db = wx.cloud.database()
-    const _ = db.command
     let query = db.collection('teams') as any
-    
-    // 分类筛选
-    if (currentTab.value !== 'ALL') {
-      query = query.where({ category: currentTab.value })
-    }
-    
-    // 学校筛选
-    if (schoolFilter.value === 'SAME' && userStore.userInfo?.school) {
-      query = query.where({ school: userStore.userInfo.school })
-    }
-
-    // 关键词搜索 (简单的关键词模糊匹配)
+    if (currentTab.value !== 'ALL') query = query.where({ category: currentTab.value })
+    if (schoolFilter.value === 'SAME' && userStore.userInfo?.school) query = query.where({ school: userStore.userInfo.school })
     if (searchKeyword.value) {
-      query = query.where({
-        content: db.RegExp({
-          regexp: searchKeyword.value,
-          options: 'i'
-        })
-      })
+      query = query.where({ content: db.RegExp({ regexp: searchKeyword.value, options: 'i' }) })
     }
-
-    const { data } = await query
-      .orderBy('createTime', 'desc')
-      .limit(20)
-      .get()
+    const { data } = await query.orderBy('createTime', 'desc').limit(20).get()
     teams.value = data
   } catch (e) {
     console.error('获取广场数据失败', e)
@@ -323,31 +318,19 @@ const fetchTeams = async () => {
 onMounted(async () => {
   initNavigation()
   authLoading.value = true
-  // 1. 调用登录
   await userStore.login()
   authLoading.value = false
-  
-  // 2. 如果已注册，则拉取大厅数据
-  if (userStore.isRegistered) {
-    fetchTeams()
-  }
+  if (userStore.isRegistered) fetchTeams()
 })
 
 onShow(() => {
-  if (userStore.isRegistered) {
-    checkNewSignals()
-  }
+  if (userStore.isRegistered) checkNewSignals()
 })
 
 const checkNewSignals = async () => {
   try {
     const db = wx.cloud.database()
-    const { total } = await db.collection('pokes')
-      .where({ 
-        receiverId: userStore.openid,
-        status: 'pending' 
-      })
-      .count()
+    const { total } = await db.collection('pokes').where({ receiverId: userStore.openid, status: 'pending' }).count()
     hasNewSignals.value = total > 0
   } catch (e) {
     console.error('检查新信号失败', e)
@@ -358,91 +341,60 @@ const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
 const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
 const goToNotifications = () => uni.navigateTo({ url: '/pages/notifications/notifications' })
 const goToProfile = () => uni.navigateTo({ url: '/pages/profile/profile' })
+const goToUserProfile = (openid: string) => { if (openid) uni.navigateTo({ url: `/pages/profile/profile?id=${openid}` }) }
 
-// 跳转到其他校友的公开主页
-const goToUserProfile = (openid: string) => {
-  if (!openid) return
-  uni.navigateTo({ url: `/pages/profile/profile?id=${openid}` })
-}
+const handleCardClick = (item: any) => { selectedItem.value = item }
 
-// 点击卡片进入觉醒预览
-const handleCardClick = (item: any) => {
-  selectedItem.value = item
-}
-
-// 在预览中确认投递
-const confirmPoke = () => {
-  if (selectedItem.value) {
-    handlePoke(selectedItem.value)
-  }
-}
-
-// 底部加载更多 (待分页功能完善)
-const loadMore = () => {
-  if (loading.value || teams.value.length === 0) return
-  console.log('Load more teams...')
-}
-
-// 核心互动：投递名片 (Poke)
-const handlePoke = async (item: any) => {
-  if (pokingId.value === item._id) return
-
+const handlePoke = (item: any) => {
   if (!userStore.isContactComplete) {
     uni.showModal({
-      title: '开启社交名片',
-      content: '为了让对方能联系上你，请先补全一种联系方式',
+      title: '完整名片',
+      content: '补全一种联系方式后，才能发送组队信号哦',
       confirmText: '去补全',
-      cancelText: '再看看',
-      success: (res) => {
-        if (res.confirm) goToRegister()
-      }
+      success: (res) => { if (res.confirm) goToRegister() }
     })
     return
   }
+  selectedItem.value = item
+  applyMsg.value = ''
+  showApplyPanel.value = true
+}
 
-  if (item._openid === userStore.openid) {
-    uni.showToast({ title: '这是你自己发的动态哦', icon: 'none' })
-    return
-  }
-
-  uni.showLoading({ title: '正在投递名片...' })
-
+const confirmPoke = async () => {
+  const item = selectedItem.value
+  uni.showLoading({ title: '正在发射...' })
   try {
     const db = wx.cloud.database()
+    const _ = db.command
     await db.collection('pokes').add({
       data: {
         targetTeamId: item._id,
         targetTeamContent: item.content,
-        receiverId: item._openid, // 接收者
-        receiverName: item.publisherName, // 保存接收者姓名
-        receiverAvatar: item.publisherAvatar, // 保存接收者头像
-        senderId: userStore.openid, // 发送者
+        receiverId: item._openid,
+        receiverName: item.publisherName || '校友',
+        receiverAvatar: item.publisherAvatar || '',
+        status: 'pending',
+        senderId: userStore.openid,
+        applyMsg: applyMsg.value || '学霸，带我飞！',
         senderInfo: {
           nickname: userStore.userInfo.nickname,
           avatarUrl: userStore.userInfo.avatarUrl,
-          contacts: userStore.userInfo.contacts,
-          school: userStore.userInfo.school
+          school: userStore.userInfo.school,
+          contacts: userStore.userInfo.contacts
         },
-        status: 'pending', 
         createTime: db.serverDate()
       }
     })
-
-    const _ = db.command
-    await db.collection('teams').doc(item._id).update({
-      data: { pokesCount: _.inc(1) }
-    })
-
-    pokingId.value = item._id
-    setTimeout(() => pokingId.value = '', 1000)
-
-    uni.showToast({ title: '名片已投递！', icon: 'success' })
+    await db.collection('teams').doc(item._id).update({ data: { pokesCount: _.inc(1) } })
+    showApplyPanel.value = false
+    selectedItem.value = null
+    uni.showToast({ title: '信号已发射！' })
   } catch (e) {
-    console.error('投递失败', e)
-    uni.hideLoading()
-    uni.showToast({ title: '网络繁忙，请重试', icon: 'none' })
+    uni.showToast({ title: '网络有些拥挤', icon: 'none' })
   }
 }
+
+const loadMore = () => { if (loading.value || teams.value.length === 0) return }
 </script>
 
 <style lang="scss" scoped>
@@ -457,70 +409,45 @@ const handlePoke = async (item: any) => {
   box-sizing: border-box; border-bottom: 1px solid rgba(0,0,0,0.05);
 
   .header-left { 
-    flex: 1; display: flex; align-items: center; gap: 20rpx; 
-    .mini-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
-    .title-group { display: flex; flex-direction: column; }
-    .title { font-size: 36rpx; font-weight: 900; color: #1a1a1a; }
-    .subtitle { font-size: 20rpx; color: #9ca3af; }
+    flex: 1; display: flex; align-items: center; gap: 24rpx; padding-bottom: 20rpx;
+    .mini-avatar { width: 88rpx; height: 88rpx; border-radius: 50%; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 40rpx rgba(0,0,0,0.08); }
+    .title-group { display: flex; flex-direction: column; gap: 8rpx; }
+    .title { font-size: 44rpx; font-weight: 900; color: #111827; letter-spacing: 2rpx; }
+    .subtitle { font-size: 24rpx; color: #6b7280; font-weight: 500; }
   }
-  .header-right { 
-    display: flex; align-items: center; gap: 20rpx;
-    .action-btn { 
-      width: 80rpx; height: 80rpx; display: flex; align-items: center; justify-content: center; position: relative;
-      background: #fff; border-radius: 24rpx; box-shadow: 0 8rpx 20rpx rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);
-      .action-icon { font-size: 36rpx; }
-      .badge { position: absolute; top: -5rpx; right: -5rpx; width: 22rpx; height: 22rpx; background: #ef4444; border-radius: 50%; border: 6rpx solid #fff; }
-    }
-  }
-  .title { font-size: 52rpx; font-weight: 900; color: #1a1a1a; display: block; letter-spacing: 2rpx; }
-  .subtitle { font-size: 24rpx; color: #9ca3af; margin-top: 10rpx; display: block; }
 }
 
-.scroll-area { flex: 1; padding: 0 32rpx; box-sizing: border-box; }
+.scroll-area { flex: 1; width: 100%; box-sizing: border-box; }
 
-/* 瀑布流 & 列表布局 */
 .requirement-wall {
-  display: flex; flex-wrap: wrap; gap: 30rpx;
-  padding: 10rpx 10rpx 40rpx; // 增加水平内边距，给卡片旋转腾出空间
+  display: flex; flex-direction: column; gap: 40rpx;
+  padding: 40rpx 0 100rpx;
   width: 100%; box-sizing: border-box;
 
-  &.feed-list { 
-    flex-direction: column; 
-    .post-it-card { 
-      width: 100%; min-height: 420rpx; 
-      margin: 0 auto;
-    } 
-  }
-  &.waterfall { 
-    display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; 
-    .post-it-card { 
-      width: 100%; min-height: 380rpx; 
-      .card-body { 
-        font-size: 32rpx; 
-        -webkit-line-clamp: 4; line-clamp: 4;
-      } 
-    } 
+  .post-it-card { 
+    width: 86%; min-height: 280rpx; 
+    margin: 0 auto;
   }
 }
 
 .post-it-card {
-  border-radius: 32rpx; padding: 40rpx; position: relative; box-shadow: 10rpx 10rpx 30rpx rgba(0,0,0,0.05);
+  border-radius: 32rpx; padding: 30rpx 40rpx; position: relative; box-shadow: 10rpx 10rpx 30rpx rgba(0,0,0,0.05);
   display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
   border-bottom: 8rpx solid rgba(0,0,0,0.1); border-right: 2rpx solid rgba(0,0,0,0.05);
 
   .urgent-tag {
-    position: absolute; top: 30rpx; right: -20rpx; background: #1a1a1a; color: #fff; padding: 6rpx 40rpx; transform: rotate(15deg); font-size: 20rpx; font-weight: 800; border-radius: 8rpx;
+    position: absolute; top: 30rpx; right: 10rpx; background: #1a1a1a; color: #fff; padding: 6rpx 30rpx; transform: rotate(15deg); font-size: 20rpx; font-weight: 800; border-radius: 8rpx;
   }
 
   .card-body {
-    font-size: 44rpx; font-weight: 800; color: #1a1a1a; line-height: 1.4; margin-top: 40rpx;
+    font-size: 34rpx; font-weight: 800; color: #1a1a1a; line-height: 1.4; margin-top: 40rpx;
     display: -webkit-box; -webkit-box-orient: vertical; 
-    -webkit-line-clamp: 5; line-clamp: 5; // 双重标准确保无 Lint 警告
+    -webkit-line-clamp: 4; line-clamp: 4; 
     overflow: hidden;
   }
 
   .card-footer {
-    margin-top: 40rpx; display: flex; justify-content: space-between; align-items: flex-end;
+    margin-top: 30rpx; display: flex; justify-content: space-between; align-items: flex-end;
     .publisher-info {
       .school { font-size: 24rpx; font-weight: bold; color: #333; display: block; }
       .time { font-size: 20rpx; color: #666; margin-top: 5rpx; }
@@ -544,22 +471,27 @@ const handlePoke = async (item: any) => {
   100% { transform: scale(1.8) translateY(-40rpx); opacity: 0; }
 }
 
-.search-filter-section {
-  display: flex; align-items: center; gap: 20rpx; margin-bottom: 40rpx;
-  .search-bar-wrap {
-    flex: 1; background: #fff; border-radius: 30rpx; padding: 20rpx 30rpx;
-    display: flex; align-items: center; gap: 15rpx;
-    box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.03); border: 1rpx solid rgba(0,0,0,0.02);
-    .search-icon { font-size: 28rpx; }
-    .search-input { flex: 1; font-size: 28rpx; color: #1a1a1a; }
-    .placeholder { color: #9ca3af; }
-  }
-  .filter-btn {
-    width: 88rpx; height: 88rpx; background: #fff; border-radius: 24rpx;
-    display: flex; align-items: center; justify-content: center; position: relative;
-    box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.03); border: 1rpx solid rgba(0,0,0,0.02);
-    .filter-icon { font-size: 36rpx; }
-    .filter-dot { position: absolute; top: -4rpx; right: -4rpx; width: 14rpx; height: 14rpx; background: #a855f7; border-radius: 50%; border: 4rpx solid #fff; }
+.ios-search-section {
+  padding: 0 40rpx 40rpx;
+  .search-bar-integrated {
+    height: 80rpx; background: rgba(118, 118, 128, 0.12); border-radius: 20rpx;
+    display: flex; align-items: center; padding: 0 24rpx;
+    
+    .ios-input { flex: 1; font-size: 30rpx; color: #000; }
+    .ios-placeholder { color: #8E8E93; }
+    
+    .ios-divider { width: 1rpx; height: 32rpx; background: rgba(0,0,0,0.1); margin: 0 20rpx; }
+    
+    .ios-search-icon-css { 
+      width: 28rpx; height: 28rpx; border: 3rpx solid #8E8E93; border-radius: 50%; position: relative; margin-right: 12rpx;
+      &::after { content: ''; position: absolute; bottom: -6rpx; right: -6rpx; width: 10rpx; height: 3rpx; background: #8E8E93; transform: rotate(45deg); }
+    }
+    
+    .ios-filter-trigger {
+      display: flex; align-items: center; position: relative; padding: 10rpx 0;
+      .filter-label { font-size: 28rpx; font-weight: 600; color: #6366F1; }
+      .active-dot { position: absolute; top: 0; right: -10rpx; width: 10rpx; height: 10rpx; background: #6366F1; border-radius: 50%; }
+    }
   }
 }
 

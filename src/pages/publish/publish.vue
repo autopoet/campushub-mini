@@ -1,7 +1,7 @@
 <template>
   <view class="publish-page">
     <view class="safe-header">
-      <view class="title">发布学习贴纸</view>
+      <view class="title">{{ isEdit ? '编辑学习贴纸' : '发布学习贴纸' }}</view>
       <view class="subtitle">寻找志同道合的学霸搭子</view>
     </view>
 
@@ -47,7 +47,9 @@
       </view>
 
       <view class="action-zone">
-        <button class="push-btn" :loading="submitting" @click="handlePublish">正式贴出</button>
+        <button class="push-btn" :loading="submitting" @click="handlePublish">
+          {{ isEdit ? '更新贴纸' : '正式贴出' }}
+        </button>
         <view class="back-text" @click="goBack">返回广场</view>
       </view>
     </view>
@@ -55,11 +57,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useUserStore } from '../../store/user'
+import { ref, reactive, computed } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
+import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
 const submitting = ref(false)
+const isEdit = ref(false)
+const targetId = ref('')
 
 const categories = [
   { name: 'COMPETITION', label: '竞赛项目', color: '#E0F2FE' }, 
@@ -103,21 +108,31 @@ const handlePublish = async () => {
   submitting.value = true
   try {
     const db = wx.cloud.database()
-    await db.collection('teams').add({
-      data: {
-        category: currentCategory.value,
-        content: formData.content,
-        urgentRole: formData.urgentRole || '未填',
-        color: currentColor.value,
-        publisherName: userStore.userInfo?.nickname || '校友',
-        publisherAvatar: userStore.userInfo?.avatarUrl || '',
-        school: userStore.userInfo?.school || '未知学校',
-        pokesCount: 0,
-        createTime: db.serverDate()
-      }
-    })
     
-    uni.showToast({ title: '贴出成功！', icon: 'success' })
+    const payload = {
+      category: currentCategory.value,
+      content: formData.content,
+      urgentRole: formData.urgentRole || '未填',
+      color: currentColor.value,
+      publisherName: userStore.userInfo?.nickname || '校友',
+      publisherAvatar: userStore.userInfo?.avatarUrl || '',
+      school: userStore.userInfo?.school || '未知学校',
+      createTime: db.serverDate()
+    }
+
+    if (isEdit.value) {
+      await db.collection('teams').doc(targetId.value).update({ data: payload })
+      uni.showToast({ title: '已更新！', icon: 'success' })
+    } else {
+      await db.collection('teams').add({
+        data: {
+          ...payload,
+          pokesCount: 0
+        }
+      })
+      uni.showToast({ title: '贴出成功！', icon: 'success' })
+    }
+    
     setTimeout(() => uni.navigateBack(), 1500)
   } catch (e) {
     console.error('Publish Error:', e)
@@ -127,7 +142,33 @@ const handlePublish = async () => {
   }
 }
 
-const goBack = () => uni.navigateBack()
+const goBack = () => {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+  } else {
+    uni.switchTab({ url: '/pages/index/index' })
+  }
+}
+
+onLoad(async (options) => {
+  if (options?.id) {
+    isEdit.value = true
+    targetId.value = options.id
+    // 如果是编辑模式，拉取原数据
+    const db = wx.cloud.database()
+    const { data } = await db.collection('teams').doc(options.id).get()
+    if (data) {
+      formData.content = data.content
+      formData.urgentRole = (data.urgentRole === '未填' || !data.urgentRole) ? '' : data.urgentRole
+      currentCategory.value = data.category
+      currentColor.value = data.color
+    } else {
+      uni.showToast({ title: '贴纸不存在', icon: 'none' })
+      setTimeout(() => uni.navigateBack(), 1000)
+    }
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -179,5 +220,11 @@ const goBack = () => uni.navigateBack()
   margin-top: 100rpx; text-align: center;
   .push-btn { background: #1a1a1a; color: #fff; border-radius: 30rpx; font-weight: bold; font-size: 32rpx; padding: 20rpx 0; box-shadow: 0 25rpx 50rpx rgba(0,0,0,0.15); }
   .back-text { margin-top: 50rpx; font-size: 26rpx; color: #9ca3af; }
+  .edit-badge { 
+      position: absolute; bottom: 0; right: 0; background: #fff; width: 56rpx; height: 56rpx; 
+      border-radius: 18rpx; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.1); border: 2rpx solid #6366f1;
+      .gear-icon { font-size: 32rpx; line-height: 1; }
+    }
 }
 </style>

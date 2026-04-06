@@ -1,5 +1,15 @@
 <template>
-  <view class="container">
+  <view class="container" :style="{ paddingTop: (statusBarHeight + 44) + 'px' }">
+    <!-- iOS 风格标题栏 -->
+    <view class="ios-header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-top">
+        <view class="back-btn" @click="goBack">
+          <view class="ios-back-arrow"></view>
+        </view>
+        <text class="title">{{ isMe ? '个人中心' : '学友资料' }}</text>
+        <view class="placeholder"></view>
+      </view>
+    </view>
     <!-- 1. 背景装饰 -->
     <view class="header-bg"></view>
 
@@ -7,7 +17,9 @@
     <view class="profile-card animate-slide-up">
       <view class="avatar-box">
         <image class="avatar" :src="displayUser.avatarUrl || defaultAvatar" />
-        <view v-if="isMe" class="edit-badge" @click="showEdit = true">⚙️</view>
+        <view v-if="isMe" class="edit-badge" @click="showEdit = true">
+          <text class="gear-emoji">⚙️</text>
+        </view>
       </view>
       
       <view class="user-info">
@@ -82,8 +94,8 @@
     </view>
 
     <!-- 🌟 内嵌设置模态框 (Drawer 风格) -->
-    <view v-if="showEdit" class="edit-overlay" @click.self="showEdit = false">
-      <view class="edit-panel animate-panel-up">
+    <view v-if="showEdit" class="edit-overlay" @click.stop="showEdit = false">
+      <view class="edit-panel animate-panel-up" @click.stop>
         <view class="panel-header">
           <text class="panel-title">设置校友名片</text>
           <text class="close" @click="showEdit = false">×</text>
@@ -116,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
 
@@ -127,6 +139,7 @@ const myPokes = ref<any[]>([])
 const isMe = ref(true)
 const targetUserId = ref('')
 const showEdit = ref(false)
+const headerHeight = ref(0)
 
 const displayUser = ref<any>({})
 const editForm = ref({
@@ -150,7 +163,21 @@ const statusMap: StatusMap = {
 
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
+const statusBarHeight = ref(0)
+const goBack = () => {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+  } else {
+    uni.switchTab({ url: '/pages/index/index' })
+  }
+}
+
 onLoad(async (options) => {
+  const sys = uni.getSystemInfoSync()
+  statusBarHeight.value = sys.statusBarHeight || 0
+  headerHeight.value = statusBarHeight.value + 44 + 60
+
   const openid = options?.id
   await userStore.login()
   
@@ -202,11 +229,9 @@ const saveProfile = async () => {
   uni.showLoading({ title: '正在同步...' })
   try {
     const db = wx.cloud.database()
-    // 由于我们在注册时 docID 就是 openid，所以这里直接用它更新
     await db.collection('users').doc(userStore.openid).update({
       data: editForm.value
     })
-    // 同步到本地 Store
     userStore.userInfo = { ...userStore.userInfo, ...editForm.value }
     displayUser.value = { ...displayUser.value, ...editForm.value }
     showEdit.value = false
@@ -233,11 +258,23 @@ const handleAction = (item: any) => {
   uni.showActionSheet({
     itemList: ['编辑内容', '下架需求'],
     success: async (res) => {
-      if (res.tapIndex === 1) {
-        const db = wx.cloud.database()
-        await db.collection('teams').doc(item._id).remove()
-        fetchMyData()
-        uni.showToast({ title: '已下架' })
+      if (res.tapIndex === 0) {
+        // 编辑：带着ID跳回发布页
+        uni.navigateTo({ url: `/pages/publish/publish?id=${item._id}` })
+      } else if (res.tapIndex === 1) {
+        uni.showModal({
+          title: '下架需求?',
+          content: '确定要下架这个学习贴纸吗？',
+          confirmText: '确认下架',
+          success: async (mRes) => {
+            if (mRes.confirm) {
+              const db = wx.cloud.database()
+              await db.collection('teams').doc(item._id).remove()
+              fetchMyData()
+              uni.showToast({ title: '已下架' })
+            }
+          }
+        })
       }
     }
   })
@@ -245,24 +282,46 @@ const handleAction = (item: any) => {
 </script>
 
 <style lang="scss" scoped>
-.container { min-height: 100vh; background: #F9FAFB; padding-bottom: 50rpx; }
+.container { min-height: 100vh; background: #F2F2F7; padding-bottom: 50rpx; }
+
+.ios-header {
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+  background: rgba(249, 249, 249, 0.94); backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.1);
+  
+  .header-top {
+    height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 30rpx;
+    .back-btn { 
+      width: 60rpx; height: 60rpx; display: flex; align-items: center; justify-content: center;
+      .ios-back-arrow { 
+        width: 24rpx; height: 24rpx; border-left: 5rpx solid #6366F1; border-bottom: 5rpx solid #6366F1; 
+        transform: rotate(45deg); margin-left: 10rpx;
+      }
+    }
+    .title { font-size: 34rpx; font-weight: 700; color: #000; }
+    .placeholder { width: 60rpx; }
+  }
+}
 
 .header-bg {
-  height: 400rpx; background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-  border-radius: 0 0 80rpx 80rpx;
+  height: 380rpx; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  border-radius: 0 0 100rpx 100rpx; margin-top: -44px;
 }
 
 .profile-card {
-  margin: -200rpx 40rpx 40rpx; background: #fff; border-radius: 50rpx; padding: 60rpx 40rpx 40rpx;
-  box-shadow: 0 20rpx 60rpx rgba(0,0,0,0.05); position: relative; text-align: center;
+  margin: -140rpx 40rpx 40rpx; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); 
+  border-radius: 50rpx; padding: 120rpx 40rpx 40rpx;
+  box-shadow: 0 40rpx 100rpx rgba(118, 75, 162, 0.08); position: relative; text-align: center;
+  border: 1px solid rgba(255,255,255,0.8);
   
   .avatar-box {
     position: absolute; top: -80rpx; left: 50%; transform: translateX(-50%);
     .avatar { width: 160rpx; height: 160rpx; border-radius: 50%; border: 8rpx solid #fff; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.1); }
     .edit-badge { 
-      position: absolute; bottom: 0; right: 0; background: #fff; width: 50rpx; height: 50rpx; 
-      border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24rpx;
-      box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.1);
+      position: absolute; bottom: 0; right: 0; background: #fff; width: 60rpx; height: 60rpx; 
+      border-radius: 20rpx; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.1); border: 2rpx solid #6366f1;
+      .gear-emoji { font-size: 32rpx; line-height: 1; }
     }
   }
 

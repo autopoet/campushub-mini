@@ -1,23 +1,35 @@
 <template>
-  <view class="notify-container">
-    <view class="page-header">
-      <text class="title">消息中心</text>
-      <view class="tabs-header">
-        <view 
-          v-for="t in menuTabs" 
-          :key="t.id" 
-          @click="activeTab = t.id"
-          :class="['menu-tab', { active: activeTab === t.id }]">
-          {{ t.label }}
-          <view v-if="t.id === 'received' && hasNew" class="dot"></view>
+  <view class="notify-container" :style="{ paddingTop: (statusBarHeight + 44) + 'px' }">
+    <!-- iOS 风格大标题状态栏 -->
+      <view class="ios-header" :style="{ paddingTop: statusBarHeight + 'px' }">
+        <view class="header-top">
+          <view class="back-btn" @click="goBack">
+            <view class="ios-back-arrow"></view>
+          </view>
+          <text class="title">消息中心</text>
+          <view class="placeholder"></view>
+        </view>
+        
+        <!-- iOS 风格的分级切换 - 同步主题色 -->
+        <view class="segmented-control-wrap">
+          <view class="segmented-control">
+            <view 
+              v-for="t in menuTabs" 
+              :key="t.id"
+              @click="activeTab = t.id"
+              :class="['segment-item', { active: activeTab === t.id }]">
+              {{ t.label }}
+              <view v-if="t.id === 'received' && hasNew" class="red-dot"></view>
+            </view>
+            <view class="active-bg" :style="{ left: activeTab === 'received' ? '2px' : 'calc(50% + 1px)' }"></view>
+          </view>
         </view>
       </view>
-    </view>
 
     <!-- 信号列表 -->
     <scroll-view scroll-y class="signal-list" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="onRefresh">
-      <view v-if="loading" class="loading-box">
-        <text class="loading-text">信号扫描中...</text>
+      <view v-if="loading && signals.length === 0" class="loading-box">
+        <view class="ios-spinner"></view>
       </view>
 
       <view v-else-if="displaySignals.length === 0" class="empty-box">
@@ -41,8 +53,13 @@
         </view>
 
         <view class="target-bubble">
-          <text class="target-label">{{ activeTab === 'received' ? '他在你的贴纸留了言：' : '你对他的贴纸感兴趣：' }}</text>
-          <text class="target-content">{{ s.targetTeamContent || '已删除的需求贴' }}</text>
+          <text class="target-label">{{ activeTab === 'received' ? '他在贴纸留言：' : '你对贴纸感兴趣：' }}</text>
+          <text class="target-content">“{{ s.targetTeamContent }}”</text>
+          
+          <view v-if="s.applyMsg" class="user-apply-msg">
+            <text class="msg-prefix">✉️ 投递留言：</text>
+            <text class="msg-text">{{ s.applyMsg }}</text>
+          </view>
         </view>
 
         <!-- 只有在互通后才显示联系方式 -->
@@ -87,6 +104,7 @@ interface Signal {
   receiverAvatar?: string;
   receiverContacts?: any;
   targetTeamContent: string;
+  applyMsg?: string;
   status: SignalStatus;
   createTime: any;
 }
@@ -96,6 +114,25 @@ const loading = ref(true)
 const refreshing = ref(false)
 const hasNew = ref(false)
 const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
+
+const statusBarHeight = ref(0)
+const headerHeight = ref(0)
+
+const goBack = () => {
+  const pages = getCurrentPages()
+  if (pages.length > 1) {
+    uni.navigateBack()
+  } else {
+    uni.reLaunch({ url: '/pages/index/index' })
+  }
+}
+
+onMounted(() => {
+  const sys = uni.getSystemInfoSync()
+  statusBarHeight.value = sys.statusBarHeight || 0
+  headerHeight.value = statusBarHeight.value + 44
+  fetchSignals()
+})
 
 type SignalStatus = 'pending' | 'accepted' | 'ignored'
 
@@ -117,7 +154,6 @@ const fetchSignals = async () => {
   try {
     const db = wx.cloud.database()
     const _ = db.command
-    // 同时查收到的和发出的
     const { data } = await db.collection('pokes')
       .where(_.or([
         { receiverId: userStore.openid },
@@ -136,10 +172,6 @@ const fetchSignals = async () => {
   }
 }
 
-watch(activeTab, () => {
-  // 可以在这里做一些刷新逻辑，或者直接依赖 fetchSignals 下载的所有数据
-})
-
 const onRefresh = () => {
   refreshing.value = true
   fetchSignals()
@@ -149,11 +181,10 @@ const handleAccept = async (s: any) => {
   uni.showLoading({ title: '处理中' })
   try {
     const db = wx.cloud.database()
-    // 获取我自己的完整联系方式，方便对方也看到
     await db.collection('pokes').doc(s._id).update({
       data: { 
         status: 'accepted',
-        receiverContacts: userStore.userInfo.contacts // 回传自己的联系方式
+        receiverContacts: userStore.userInfo.contacts
       }
     })
     s.status = 'accepted'
@@ -182,7 +213,7 @@ const handleIgnore = async (s: any) => {
 
 const getContacts = (s: any) => {
   if (activeTab.value === 'received') return s.senderInfo.contacts || {}
-  return s.receiverContacts || {} // 如果我发出且对方同意了，显示对方回发的联系方式
+  return s.receiverContacts || {}
 }
 
 const copy = (val: string, label: string) => {
@@ -198,36 +229,63 @@ const formatTime = (time: any) => {
   const date = new Date(time)
   return `${date.getMonth() + 1}-${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
-
-onMounted(fetchSignals)
 </script>
 
 <style lang="scss" scoped>
 .notify-container {
-  min-height: 100vh; background: #f9fafb; padding: 100rpx 40rpx;
+  min-height: 100vh; background: #F2F2F7;
 }
 
-.page-header {
-  margin-bottom: 60rpx;
-  .title { font-size: 56rpx; font-weight: 900; color: #111827; display: block; margin-bottom: 40rpx; }
-  .tabs-header {
-    display: flex; gap: 40rpx;
-    .menu-tab { 
-      font-size: 30rpx; color: #9ca3af; font-weight: 800; position: relative; padding-bottom: 10rpx;
-      &.active { 
-        color: #111827; 
-        &::after { content: ''; position: absolute; bottom: 0; left: 0; width: 40%; height: 6rpx; background: #6366f1; border-radius: 4rpx; }
-      }
-      .dot { position: absolute; top: -4rpx; right: -20rpx; width: 12rpx; height: 12rpx; background: #ef4444; border-radius: 50%; }
+.ios-header {
+  position: fixed; top: 0; left: 0; width: 100%; z-index: 100;
+  // 背景同步：带有磨砂感的品牌渐变边缘
+  background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid rgba(0,0,0,0.05);
+  
+  .header-top {
+    height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 30rpx;
+    .back-btn { 
+      width: 60rpx; height: 60rpx; display: flex; align-items: center;
+      .back-icon { width: 44rpx; height: 44rpx; color: #6366F1; }
+    }
+    .title { font-size: 34rpx; font-weight: 700; color: #000; }
+    .placeholder { width: 60rpx; }
+  }
+}
+
+.segmented-control-wrap {
+  padding: 20rpx 32rpx 30rpx;
+  .segmented-control {
+    background: rgba(118, 118, 128, 0.12); border-radius: 18rpx; height: 64rpx;
+    position: relative; display: flex; align-items: center; padding: 2px;
+    
+    .segment-item {
+      flex: 1; text-align: center; font-size: 26rpx; color: #000; font-weight: 500;
+      position: relative; z-index: 2; transition: all 0.2s;
+      &.active { font-weight: 700; }
+      .red-dot { position: absolute; top: 4rpx; right: 20%; width: 10rpx; height: 10rpx; background: #FF3B30; border-radius: 50%; }
+    }
+    
+    .active-bg {
+      position: absolute; top: 2px; width: calc(50% - 3px); height: calc(100% - 4px);
+      background: #fff; border-radius: 14rpx; box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+      transition: left 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
     }
   }
 }
 
-.signal-list { height: calc(100vh - 350rpx); }
+.signal-list { height: calc(100vh - 250rpx); padding: 20rpx 40rpx; box-sizing: border-box; }
 
 .signal-card {
-  background: #fff; border-radius: 40rpx; padding: 40rpx; margin-bottom: 30rpx;
-  box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.02); border: 2rpx solid #f3f4f6; transition: all 0.3s;
+  background: #fff; border-radius: 32rpx; padding: 40rpx; margin-bottom: 30rpx;
+  box-shadow: 0 10rpx 40rpx rgba(0,0,0,0.03); border: 2rpx solid rgba(0,0,0,0.03); 
+  transition: all 0.3s; position: relative; overflow: hidden;
+  
+  // 模拟便利贴的边缘
+  &::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 8rpx;
+    background: linear-gradient(90deg, #6366f1, #a855f7); opacity: 0.1;
+  }
 
   &.pending { border-left: 8rpx solid #6366f1; .status-badge { background: rgba(99,102,241,0.1); color: #6366f1; } }
   &.accepted { .status-badge { background: rgba(16,185,129,0.1); color: #10b981; } }
@@ -248,7 +306,12 @@ onMounted(fetchSignals)
   .target-bubble {
     background: #f9fafb; border-radius: 24rpx; padding: 24rpx; margin-bottom: 30rpx;
     .target-label { font-size: 22rpx; color: #9ca3af; display: block; margin-bottom: 8rpx; }
-    .target-content { font-size: 26rpx; color: #4b5563; font-weight: 700; line-height: 1.4; }
+    .target-content { font-size: 26rpx; color: #4b5563; font-weight: 700; line-height: 1.4; font-style: italic; }
+    .user-apply-msg {
+      margin-top: 20rpx; padding-top: 20rpx; border-top: 1rpx dashed rgba(0,0,0,0.1);
+      .msg-prefix { font-size: 20rpx; color: #6366f1; font-weight: 900; }
+      .msg-text { font-size: 24rpx; color: #1f2937; font-weight: 800; display: block; margin-top: 6rpx; }
+    }
   }
 
   .contact-card {
