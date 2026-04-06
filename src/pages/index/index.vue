@@ -34,7 +34,7 @@
           :key="item._id" 
           class="post-it-card animate-pop-in"
           :style="{ backgroundColor: getPostItColor(index), transform: `rotate(${getRandomRotate(index)}deg)` }"
-          @click="showPokeDetail(item)">
+          @click="handlePoke(item)">
           
           <!-- 标签：急缺角色 -->
           <view class="urgent-tag">急缺: {{ item.urgentRole }}</view>
@@ -140,9 +140,64 @@ onMounted(async () => {
 
 const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
 const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
-const showPokeDetail = (item: any) => {
-  // TODO: 展示名片及 Poke 交互
-  console.log('Poke item:', item)
+
+// 核心互动：投递名片 (Poke)
+const handlePoke = async (item: any) => {
+  // 1. 检查自己的联系方式是否完整（之前我们在 store 注入了 isContactComplete）
+  if (!userStore.isContactComplete) {
+    uni.showModal({
+      title: '开启社交名片',
+      content: '为了让对方能联系上你，请先补全一种联系方式',
+      confirmText: '去补全',
+      cancelText: '再看看',
+      success: (res) => {
+        if (res.confirm) goToRegister()
+      }
+    })
+    return
+  }
+
+  // 2. 不能投递给自己
+  if (item._openid === userStore.openid) {
+    uni.showToast({ title: '这是你自己发的动态哦', icon: 'none' })
+    return
+  }
+
+  uni.showLoading({ title: '正在投递名片...' })
+
+  try {
+    const db = wx.cloud.database()
+    // 3. 在 pokes 集合创建一条申请记录
+    await db.collection('pokes').add({
+      data: {
+        targetTeamId: item._id,
+        targetTeamContent: item.content,
+        receiverId: item._openid, // 接收者
+        senderId: userStore.openid, // 发送者
+        senderInfo: {
+          nickname: userStore.userInfo.nickname,
+          avatarUrl: userStore.userInfo.avatarUrl,
+          contacts: userStore.userInfo.contacts,
+          school: userStore.userInfo.school
+        },
+        status: 'pending', // pending: 待响应, accepted: 已互粉, rejected: 已忽略
+        createTime: db.serverDate()
+      }
+    })
+
+    // 4. 更新帖子的“感兴趣”人数 (原子加1)
+    const _ = db.command
+    await db.collection('teams').doc(item._id).update({
+      data: { pokesCount: _.inc(1) }
+    })
+
+    uni.hideLoading()
+    uni.showToast({ title: '名片已投递！', icon: 'success' })
+  } catch (e) {
+    console.error('投递失败', e)
+    uni.hideLoading()
+    uni.showToast({ title: '网络繁忙，请重试', icon: 'none' })
+  }
 }
 </script>
 
