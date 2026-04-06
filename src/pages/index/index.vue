@@ -141,6 +141,13 @@ onMounted(async () => {
 const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
 const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
 
+// 底部加载更多 (待分页功能完善)
+const loadMore = () => {
+  if (loading.value || teams.value.length === 0) return
+  console.log('Load more teams...')
+  // TODO: 实现真正的分页拉取
+}
+
 // 核心互动：投递名片 (Poke)
 const handlePoke = async (item: any) => {
   // 1. 检查自己的联系方式是否完整（之前我们在 store 注入了 isContactComplete）

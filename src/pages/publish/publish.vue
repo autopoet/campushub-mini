@@ -1,158 +1,66 @@
 <template>
-  <view class="publish-container">
-    <view class="page-header">
-      <text class="title">发布学习动态</text>
-      <text class="subtitle">让同频的学习搭子找到你</text>
+  <view class="container">
+    <view class="header-box">
+      <text class="page-title">发布学习搭子需求</text>
+      <text class="page-desc">贴一张便利贴，开启学习之旅</text>
     </view>
 
-    <!-- 实时预览卡片 -->
-    <view class="preview-card" :style="{ backgroundColor: currentColor }">
-      <view class="card-tag">[ {{ currentCategory }} ]</view>
-      <textarea 
-        class="content-input" 
-        placeholder="写下你想找什么样的搭子..." 
-        v-model="formData.content"
-        maxlength="100"
-        auto-height
-      />
-      <view class="role-input-wrap">
-        <text class="label">寻找对象：</text>
-        <input 
-          class="role-input" 
-          v-model="formData.urgentRole" 
-          placeholder="如：Vue前端 / 饭友" 
-        />
+    <view class="form-area">
+      <view class="input-card">
+        <textarea 
+          class="content-input" 
+          v-model="content" 
+          placeholder="想要找个什么样的学习搭子？在这里写下你的需求..." 
+          maxlength="100" />
       </view>
-      <view class="card-bottom">
-        <text class="school-tag">@ {{ userStore.userInfo?.school || '我的学校' }}</text>
-        <text class="word-count">{{ formData.content.length }}/100</text>
+
+      <view class="btn-group">
+        <button class="submit-btn" @click="handleSimplePublish">立即发布</button>
+        <button class="back-link" @click="goBack">返回广场</button>
       </view>
     </view>
-
-    <!-- 快捷分类选择 -->
-    <view class="section-title">选择领域</view>
-    <view class="category-list">
-      <view 
-        v-for="c in categories" 
-        :key="c.name" 
-        class="cat-item"
-        :class="{ active: currentCategory === c.name }"
-        @click="selectCategory(c)">
-        {{ c.name }}
-      </view>
-    </view>
-
-    <button class="publish-btn" :loading="submitting" @click="handlePublish">立即贴上墙</button>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useUserStore } from '@/store/user'
+import { ref } from 'vue'
 
-const userStore = useUserStore()
-const submitting = ref(false)
+const content = ref('')
 
-const categories = [
-  { name: 'COMPETITION', color: '#E0F2FE' }, // 竞赛：淡蓝
-  { name: 'POSTGRAD', color: '#FDF2F8' },    // 考研：淡紫
-  { name: 'CIVIL', color: '#F0FDF4' },       // 考公考编：淡绿
-  { name: 'DAILY', color: '#FEFCE8' }        // 日常学习：淡黄
-]
-
-const currentCategory = ref('COMPETITION')
-const currentColor = ref('#E0F2FE')
-
-const formData = reactive({
-  content: '',
-  urgentRole: ''
-})
-
-const selectCategory = (c: any) => {
-  currentCategory.value = c.name
-  currentColor.value = c.color
-}
-
-const handlePublish = async () => {
-  if (!formData.content || !formData.urgentRole) {
-    uni.showToast({ title: '内容及寻找对象不能为空', icon: 'none' })
+const handleSimplePublish = async () => {
+  if (!content.value) {
+    uni.showToast({ title: '请输入内容', icon: 'none' })
     return
   }
-
-  submitting.value = true
+  
+  uni.showLoading({ title: '发布中' })
   try {
     const db = wx.cloud.database()
     await db.collection('teams').add({
       data: {
-        content: formData.content,
-        urgentRole: formData.urgentRole,
-        category: currentCategory.value,
-        school: userStore.userInfo?.school || '未知学校',
-        publisherName: userStore.userInfo?.nickname,
-        publisherAvatar: userStore.userInfo?.avatarUrl,
+        content: content.value,
         createTime: db.serverDate(),
-        pokesCount: 0
+        school: '测试院校',
+        category: 'DAILY'
       }
     })
-
-    uni.showToast({ title: '已贴上墙！', icon: 'success' })
-    setTimeout(() => uni.reLaunch({ url: '/pages/index/index' }), 1200)
+    uni.showToast({ title: '成功' })
+    setTimeout(() => uni.navigateBack(), 1000)
   } catch (e) {
-    console.error('发布失败', e)
-    uni.showToast({ title: '发布失败，请重试', icon: 'none' })
-  } finally {
-    submitting.value = false
+    uni.showToast({ title: '失败', icon: 'none' })
   }
 }
+
+const goBack = () => uni.navigateBack()
 </script>
 
-<style lang="scss" scoped>
-.publish-container {
-  min-height: 100vh; background: #fff; padding: 40rpx;
-}
-
-.page-header {
-  margin-bottom: 50rpx;
-  .title { font-size: 44rpx; font-weight: 900; color: #1a1a1a; display: block; }
-  .subtitle { font-size: 24rpx; color: #999; margin-top: 10rpx; display: block; }
-}
-
-.preview-card {
-  border-radius: 32rpx; padding: 50rpx; transition: background 0.3s ease;
-  box-shadow: 0 20rpx 60rpx rgba(0,0,0,0.05); position: relative;
-  border-bottom: 10rpx solid rgba(0,0,0,0.1);
-
-  .card-tag { font-size: 22rpx; font-weight: 900; letter-spacing: 4rpx; color: rgba(0,0,0,0.4); margin-bottom: 30rpx; }
-
-  .content-input {
-    width: 100%; min-height: 250rpx; font-size: 42rpx; font-weight: 800; color: #1a1a1a; line-height: 1.5;
-  }
-
-  .role-input-wrap {
-    margin-top: 40rpx; display: flex; align-items: center; border-top: 2rpx dashed rgba(0,0,0,0.1); padding-top: 30rpx;
-    .label { font-size: 28rpx; font-weight: bold; color: #333; }
-    .role-input { flex: 1; font-size: 28rpx; font-weight: bold; color: #764ba2; }
-  }
-
-  .card-bottom {
-    margin-top: 40rpx; display: flex; justify-content: space-between; align-items: center;
-    .school-tag { font-size: 24rpx; font-weight: bold; color: #666; }
-    .word-count { font-size: 20rpx; color: #999; }
-  }
-}
-
-.section-title { font-size: 28rpx; font-weight: bold; color: #999; margin: 60rpx 0 30rpx; padding-left: 10rpx; }
-
-.category-list {
-  display: flex; flex-wrap: wrap; gap: 20rpx;
-  .cat-item {
-    padding: 15rpx 40rpx; background: #f5f5f5; border-radius: 12rpx; font-size: 24rpx; font-weight: bold; color: #666; font-family: monospace;
-    &.active { background: #1a1a1a; color: #fff; }
-  }
-}
-
-.publish-btn {
-  margin-top: 80rpx; background: #1a1a1a; color: #fff; height: 110rpx; line-height: 110rpx; border-radius: 55rpx;
-  font-size: 32rpx; font-weight: bold; box-shadow: 0 15rpx 40rpx rgba(0,0,0,0.2);
-}
+<style scoped>
+.container { padding: 40rpx; min-height: 100vh; background: #fff; }
+.header-box { margin-bottom: 60rpx; margin-top: 60rpx; }
+.page-title { font-size: 48rpx; font-weight: bold; display: block; }
+.page-desc { font-size: 26rpx; color: #999; margin-top: 10rpx; display: block; }
+.input-card { background: #f5f5f5; border-radius: 20rpx; padding: 30rpx; margin-bottom: 60rpx; }
+.content-input { width: 100%; height: 300rpx; font-size: 30rpx; }
+.submit-btn { background: #1a1a1a; color: #fff; border-radius: 50rpx; margin-bottom: 30rpx; }
+.back-link { background: #f0f0f0; color: #666; border-radius: 50rpx; }
 </style>
