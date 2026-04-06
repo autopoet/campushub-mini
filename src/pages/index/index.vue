@@ -1,15 +1,21 @@
 <template>
   <view class="container">
     <!-- 顶部导航栏：视图切换 -->
-    <view class="header">
+    <view v-if="!authLoading" class="header">
       <text class="page-title">需求广场</text>
       <view class="view-toggle" @click="isWaterfall = !isWaterfall">
         <text class="icon">{{ isWaterfall ? '📑' : '🗂️' }}</text>
       </view>
     </view>
 
+    <!-- 全屏初始化加载 (防止黑屏) -->
+    <view v-if="authLoading" class="boot-loading">
+      <view class="spinner"></view>
+      <text class="loading-text">环境初始化中...</text>
+    </view>
+
     <!-- 骨架屏/加载中 -->
-    <view v-if="loading && teams.length === 0" class="loading-wall">
+    <view v-if="!authLoading && loading && teams.length === 0" class="loading-wall">
        <view v-for="i in 4" :key="i" class="skeleton-card" :class="{ 'half': isWaterfall }"></view>
     </view>
 
@@ -200,6 +206,14 @@ const showPokeDetail = (item: any) => {
     .auth-btn { background: #764ba2; color: #fff; border-radius: 30rpx; font-weight: bold; }
   }
 }
+
+.boot-loading {
+  position: fixed; inset: 0; background: #ffffff; z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  .spinner { width: 60rpx; height: 60rpx; border: 6rpx solid #f3f3f3; border-top: 6rpx solid #764ba2; border-radius: 50%; animation: spin 1s linear infinite; }
+  .loading-text { margin-top: 30rpx; font-size: 24rpx; color: #999; }
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .loading-wall { padding: 140rpx 40rpx; display: flex; flex-direction: column; gap: 30rpx; }
 .skeleton-card { height: 400rpx; background: #e0e0e0; border-radius: 30rpx; &.half { height: 300rpx; } }

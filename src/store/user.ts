@@ -50,11 +50,23 @@ export const useUserStore = defineStore('user', () => {
 
   // 注册/完善信息 Action
   const registerUser = async (formData: any) => {
+    // 1. 如果 openid 为空，尝试重新登录一次
+    if (!openid.value) {
+      console.log('[Register] OpenID missing, retrying login...')
+      await login()
+    }
+    
+    if (!openid.value) {
+      uni.showToast({ title: '无法获取用户信息，请返回重试', icon: 'none' })
+      return false
+    }
+
     const db = wx.cloud.database()
     try {
-      // 1. 上传头像到云存储（如果是临时路径）
+      // 2. 上传头像到云存储（如果是临时路径）
       let cloudAvatarUrl = formData.avatarUrl
       if (formData.avatarUrl.startsWith('http://tmp') || formData.avatarUrl.startsWith('wxfile://')) {
+        console.log('[Register] Uploading avatar...')
         const uploadRes = await wx.cloud.uploadFile({
           cloudPath: `avatars/${openid.value}_${Date.now()}.png`,
           filePath: formData.avatarUrl
@@ -62,22 +74,27 @@ export const useUserStore = defineStore('user', () => {
         cloudAvatarUrl = uploadRes.fileID
       }
 
-      // 2. 写入数据库
+      // 3. 写入数据库
       const userData = {
-        ...formData,
-        _id: openid.value,
         avatarUrl: cloudAvatarUrl,
-        createTime: new Date(),
-        updateTime: new Date()
+        nickname: formData.nickname,
+        school: formData.school,
+        grade: formData.grade,
+        skills: formData.skills,
+        contactInfo: formData.contactInfo,
+        createTime: db.serverDate(),
+        updateTime: db.serverDate()
       }
       
+      console.log('[Register] Saving doc to DB:', openid.value)
       await db.collection('users').doc(openid.value).set({ data: userData })
       
       userInfo.value = userData
       isRegistered.value = true
       return true
     } catch (e) {
-      console.error('[Register] Failed:', e)
+      console.error('[Register] Failed final error:', e)
+      uni.showToast({ title: '网络繁忙，请稍后再试', icon: 'none' })
       return false
     }
   }

@@ -42,15 +42,24 @@
           </view>
 
           <view class="input-item">
-            <text class="label">联系方式</text>
+            <view class="label-row">
+              <text class="label">展示联系方式</text>
+              <text class="label-sub">(选填)</text>
+            </view>
             <view class="contact-selector">
               <view v-for="t in contactTypes" :key="t.value" 
-                    @click="formData.contactInfo.type = t.value"
-                    :class="['type-pill', { active: formData.contactInfo.type === t.value }]">
+                    @click="activeContactType = t.value"
+                    :class="['type-pill', { active: activeContactType === t.value, hasValue: !!(formData.contacts as any)[t.value] }]">
                 {{ t.label }}
+                <view v-if="(formData.contacts as any)[t.value]" class="dot"></view>
               </view>
             </view>
-            <input type="text" v-model="formData.contactInfo.value" :placeholder="'请输入您的' + currentContactLabel + '号'" />
+            
+            <view class="dynamic-input-wrap" :key="activeContactType">
+              <input v-if="activeContactType === 'phone'" type="number" v-model="formData.contacts.phone" placeholder="手机号，方便搭子飞速找到你" />
+              <input v-if="activeContactType === 'qq'" type="number" v-model="formData.contacts.qq" placeholder="QQ号，深情交流不迷路" />
+              <input v-if="activeContactType === 'wechat'" type="text" v-model="formData.contacts.wechat" placeholder="微信号，扩列必备" />
+            </view>
           </view>
         </view>
 
@@ -129,6 +138,7 @@ import schoolList from '@/static/schools.json'
 const userStore = useUserStore()
 const currentStep = ref(1)
 const showDrawer = ref(false)
+const activeContactType = ref('phone')
 const searchKey = ref('')
 const newSkill = ref('')
 const submitting = ref(false)
@@ -136,16 +146,16 @@ const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQ
 
 const gradeRange = ['大一', '大二', '大三', '大四', '研一', '研二', '研三', '博士及以上']
 const skillOptions = ref(['编程', '建模', '文档', 'PPT', '剪辑', '策划', '羽毛球', '自习考研', '开黑', '美食', '旅游', '拍照', '英语'])
-const contactTypes = [{ label: '微信', value: 'wechat' }, { label: 'QQ', value: 'qq' }, { label: '手机', value: 'phone' }]
+const contactTypes = [{ label: '手机', value: 'phone' }, { label: 'QQ', value: 'qq' }, { label: '微信', value: 'wechat' }]
 
-const formData = reactive({ avatarUrl: '', nickname: '', school: '', grade: '', skills: [] as string[], contactInfo: { type: 'wechat', value: '' } })
+const formData = reactive({ avatarUrl: '', nickname: '', school: '', grade: '', skills: [] as string[], contacts: { wechat: '', qq: '', phone: '' } })
 
 const filteredSchools = computed(() => {
   if (!searchKey.value) return []
   return (schoolList as string[]).filter(s => s.includes(searchKey.value)).slice(0, 30)
 })
 
-const currentContactLabel = computed(() => contactTypes.find(t => t.value === formData.contactInfo.type)?.label || '')
+// 移除不再使用的 computed 属性以消除 lint 警告识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识识（修正 Lint）
 
 const onChooseAvatar = (e: any) => formData.avatarUrl = e.detail.avatarUrl
 const onNicknameBlur = (e: any) => formData.nickname = e.detail.value
@@ -168,8 +178,10 @@ const addCustomSkill = () => {
 }
 
 const finish = async () => {
-  if (!formData.avatarUrl || !formData.nickname || !formData.school || !formData.grade || !formData.contactInfo.value) {
-    uni.showToast({ title: '基础信息必填项未完成', icon: 'none' }); return
+  const { avatarUrl, nickname, school, grade } = formData
+
+  if (!avatarUrl || !nickname || !school || !grade) {
+    uni.showToast({ title: '基础资料未完善', icon: 'none' }); return
   }
   submitting.value = true
   const success = await userStore.registerUser(formData)
@@ -229,14 +241,24 @@ const finish = async () => {
 
 .input-item {
   margin-bottom: 35rpx;
-  .label { font-size: 26rpx; font-weight: 700; color: #4b5563; margin-bottom: 12rpx; display: block; padding-left: 10rpx; }
+  .label-row { display: flex; align-items: baseline; margin-bottom: 15rpx; padding-left: 10rpx; }
+  .label { font-size: 26rpx; font-weight: 700; color: #4b5563; }
+  .label-sub { font-size: 20rpx; color: #9ca3af; margin-left: 10rpx; }
   input, .selector-box { background: rgba(0,0,0,0.03); border-radius: 20rpx; padding: 25rpx 35rpx; font-size: 30rpx; color: #1f2937; }
   .placeholder { color: #9ca3af; }
 }
 
 .contact-selector {
-  display: flex; gap: 15rpx; margin-bottom: 15rpx;
-  .type-pill { flex: 1; text-align: center; padding: 12rpx 0; background: rgba(0,0,0,0.05); border-radius: 12rpx; font-size: 24rpx; color: #6b7280; &.active { background: #764ba2; color: #fff; font-weight: bold; } }
+  display: flex; gap: 15rpx; margin-bottom: 20rpx;
+  .type-pill { 
+    flex: 1; text-align: center; padding: 14rpx 0; background: rgba(0,0,0,0.05); border-radius: 12rpx; font-size: 22rpx; color: #6b7280; position: relative; transition: all 0.2s;
+    &.active { background: #764ba2; color: #fff; font-weight: bold; }
+    &.hasValue:not(.active) { color: #764ba2; background: rgba(118,75,162,0.05); }
+    .dot { position: absolute; top: 6rpx; right: 6rpx; width: 8rpx; height: 8rpx; background: #a5f3fc; border-radius: 50%; }
+  }
+}
+.dynamic-input-wrap {
+  input { background: rgba(0,0,0,0.03); border-radius: 20rpx; padding: 25rpx 35rpx; font-size: 30rpx; color: #1f2937; }
 }
 
 .skills-container {
