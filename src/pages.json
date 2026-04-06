@@ -27,6 +27,13 @@
 				"navigationBarTitleText": "信号中心",
 				"navigationBarBackgroundColor": "#F9FAFB"
 			}
+		},
+		{
+			"path": "pages/profile/profile",
+			"style": {
+				"navigationBarTitleText": "个人中心",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

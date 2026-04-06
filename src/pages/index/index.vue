@@ -2,9 +2,12 @@
   <view class="container">
     <!-- 顶部导航栏 -->
     <view v-if="!authLoading" class="hall-header">
-      <view class="header-left">
-        <text class="title">学习搭子广场</text>
-        <text class="subtitle">找到志同道合的学习伙伴</text>
+      <view class="header-left" @click="goToProfile">
+        <image class="mini-avatar" :src="userStore.userInfo?.avatarUrl || defaultAvatar" />
+        <view class="title-group">
+          <text class="title">学习搭子</text>
+          <text class="subtitle">找到你的学术合伙人</text>
+        </view>
       </view>
       <view class="header-right" @click="goToNotifications">
         <view class="msg-icon">🛰️</view>
@@ -107,6 +110,7 @@ const pokingId = ref('') // 正被戳中的卡片ID
 
 // 预设高饱和度马卡龙色系（便利贴风格）
 const postItColors = ['#E9D5FF', '#CFFAFE', '#FEF9C3', '#FFDADA', '#DCFCE7']
+const defaultAvatar = 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'
 
 const getPostItColor = (i: number) => postItColors[i % postItColors.length]
 const getRandomRotate = (i: number) => (i % 2 === 0 ? -1.5 : 1.5)
@@ -141,22 +145,36 @@ const fetchTeams = async () => {
 
 onMounted(async () => {
   authLoading.value = true
-  // 1. 调用登录（获取 OpenID 并检查注册状态）
+  // 1. 调用登录
   await userStore.login()
   authLoading.value = false
   
-  // 2. 如果已注册，则拉取大厅数据
+  // 2. 如果已注册，则拉取大厅数据并检查新信号
   if (userStore.isRegistered) {
     fetchTeams()
-  } else {
-    // 强制跳转逻辑（可选，目前已通过遮罩拦截）
-    // goToRegister()
+    checkNewSignals()
   }
 })
+
+const checkNewSignals = async () => {
+  try {
+    const db = wx.cloud.database()
+    const { total } = await db.collection('pokes')
+      .where({ 
+        receiverId: userStore.openid,
+        status: 'pending' 
+      })
+      .count()
+    hasNewSignals.value = total > 0
+  } catch (e) {
+    console.error('检查新信号失败', e)
+  }
+}
 
 const goToRegister = () => uni.navigateTo({ url: '/pages/register/register' })
 const goToPublish = () => uni.navigateTo({ url: '/pages/publish/publish' })
 const goToNotifications = () => uni.navigateTo({ url: '/pages/notifications/notifications' })
+const goToProfile = () => uni.navigateTo({ url: '/pages/profile/profile' })
 
 // 底部加载更多 (待分页功能完善)
 const loadMore = () => {
@@ -237,12 +255,16 @@ const handlePoke = async (item: any) => {
 
 .hall-header {
   position: sticky; top: 0; z-index: 100;
-  margin-bottom: 50rpx; display: flex; justify-content: space-between; align-items: flex-start; 
+  margin-bottom: 50rpx; display: flex; justify-content: space-between; align-items: center; 
   padding: 100rpx 48rpx 40rpx; 
   background: rgba(248, 248, 248, 0.85); backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(0,0,0,0.05);
 
-  .header-left { flex: 1; }
+  .header-left { 
+    flex: 1; display: flex; align-items: center; gap: 20rpx; 
+    .mini-avatar { width: 88rpx; height: 88rpx; border-radius: 28rpx; background: #eee; border: 4rpx solid #fff; box-shadow: 0 10rpx 20rpx rgba(0,0,0,0.05); }
+    .title-group { display: flex; flex-direction: column; }
+  }
   .header-right { 
     width: 90rpx; height: 90rpx; display: flex; align-items: center; justify-content: center; position: relative;
     background: #fff; border-radius: 28rpx; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.03);
