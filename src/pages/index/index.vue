@@ -37,7 +37,11 @@
           v-for="(item, index) in teams" 
           :key="item._id" 
           class="post-it-card animate-pop-in"
-          :style="{ backgroundColor: item.color || getPostItColor(index), transform: `rotate(${getRandomRotate(index)}deg)` }"
+          :style="{ 
+            backgroundColor: item.color || getPostItColor(index), 
+            transform: `rotate(${getRandomRotate(index)}deg)`,
+            animationDelay: `${index * 0.1}s` 
+          }"
           @click="handlePoke(item)">
           
           <!-- 标签：急缺角色 -->
@@ -54,8 +58,14 @@
               <text class="school">{{ item.school || '校外精英' }}</text>
               <text class="time">{{ formatTime(item.createTime) }}</text>
             </view>
-            <view class="poke-btn">戳他 🖐️</view>
+            <view class="poke-btn">
+              <text v-if="item.pokesCount > 0" class="hot-count">{{ item.pokesCount }}</text>
+              戳他 🖐️
+            </view>
           </view>
+
+          <!-- 戳一戳反馈动效层 -->
+          <view v-if="pokingId === item._id" class="poke-feedback">🖐️</view>
         </view>
       </view>
 
@@ -93,6 +103,7 @@ const loading = ref(true)
 const refreshing = ref(false)
 const hasNewSignals = ref(false) // 暂时模拟红点
 const authLoading = ref(true)
+const pokingId = ref('') // 正被戳中的卡片ID
 
 // 预设高饱和度马卡龙色系（便利贴风格）
 const postItColors = ['#E9D5FF', '#CFFAFE', '#FEF9C3', '#FFDADA', '#DCFCE7']
@@ -156,6 +167,9 @@ const loadMore = () => {
 
 // 核心互动：投递名片 (Poke)
 const handlePoke = async (item: any) => {
+  // 杜绝狂点拦截
+  if (pokingId.value === item._id) return
+
   // 1. 检查自己的联系方式是否完整（之前我们在 store 注入了 isContactComplete）
   if (!userStore.isContactComplete) {
     uni.showModal({
@@ -204,7 +218,9 @@ const handlePoke = async (item: any) => {
       data: { pokesCount: _.inc(1) }
     })
 
-    uni.hideLoading()
+    pokingId.value = item._id
+    setTimeout(() => pokingId.value = '', 1000)
+
     uni.showToast({ title: '名片已投递！', icon: 'success' })
   } catch (e) {
     console.error('投递失败', e)
@@ -220,18 +236,24 @@ const handlePoke = async (item: any) => {
 }
 
 .hall-header {
-  margin-bottom: 50rpx; display: flex; justify-content: space-between; align-items: flex-start; padding: 100rpx 40rpx 20rpx;
+  position: sticky; top: 0; z-index: 100;
+  margin-bottom: 50rpx; display: flex; justify-content: space-between; align-items: flex-start; 
+  padding: 100rpx 48rpx 40rpx; 
+  background: rgba(248, 248, 248, 0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+
   .header-left { flex: 1; }
   .header-right { 
-    width: 100rpx; height: 100rpx; display: flex; align-items: center; justify-content: center; position: relative;
-    .msg-icon { font-size: 50rpx; }
-    .badge { position: absolute; top: 15rpx; right: 15rpx; width: 18rpx; height: 18rpx; background: #ef4444; border-radius: 50%; border: 4rpx solid #f8f8f8; }
+    width: 90rpx; height: 90rpx; display: flex; align-items: center; justify-content: center; position: relative;
+    background: #fff; border-radius: 28rpx; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.03);
+    .msg-icon { font-size: 40rpx; }
+    .badge { position: absolute; top: -5rpx; right: -5rpx; width: 22rpx; height: 22rpx; background: #ef4444; border-radius: 50%; border: 6rpx solid #fff; }
   }
-  .title { font-size: 56rpx; font-weight: 900; color: #1a1a1a; display: block; letter-spacing: 2rpx; }
-  .subtitle { font-size: 26rpx; color: #888; margin-top: 15rpx; display: block; }
+  .title { font-size: 52rpx; font-weight: 900; color: #1a1a1a; display: block; letter-spacing: 2rpx; }
+  .subtitle { font-size: 24rpx; color: #9ca3af; margin-top: 10rpx; display: block; }
 }
 
-.scroll-area { flex: 1; padding: 20rpx; box-sizing: border-box; }
+.scroll-area { flex: 1; padding: 0 32rpx; box-sizing: border-box; }
 
 /* 瀑布流 & 列表布局 */
 .requirement-wall {
@@ -260,8 +282,25 @@ const handlePoke = async (item: any) => {
       .school { font-size: 24rpx; font-weight: bold; color: #333; display: block; }
       .time { font-size: 20rpx; color: #666; margin-top: 5rpx; }
     }
-    .poke-btn { background: #fff; padding: 10rpx 25rpx; border-radius: 40rpx; font-size: 24rpx; font-weight: bold; border: 4rpx solid #1a1a1a; }
+      .poke-btn { 
+      background: #fff; padding: 10rpx 25rpx; border-radius: 40rpx; font-size: 24rpx; font-weight: bold; border: 4rpx solid #1a1a1a; transition: all 0.2s; 
+      display: flex; align-items: center; gap: 8rpx;
+      &:active { transform: scale(0.9); } 
+      .hot-count { color: #ef4444; font-size: 20rpx; font-weight: 900; background: rgba(239, 68, 68, 0.1); padding: 0 10rpx; border-radius: 6rpx; }
+    }
   }
+
+  .poke-feedback {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 120rpx; background: rgba(255,255,255,0.4); backdrop-filter: blur(4px);
+    animation: poke-high-five 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+}
+
+@keyframes poke-high-five {
+  0% { transform: scale(0.5); opacity: 0; }
+  30% { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(1.8) translateY(-40rpx); opacity: 0; }
 }
 
 .fab-btn {
@@ -293,5 +332,11 @@ const handlePoke = async (item: any) => {
 .skeleton-card { height: 400rpx; background: #e0e0e0; border-radius: 30rpx; &.half { height: 300rpx; } }
 
 @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes pop-in { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes pop-in { 
+  from { transform: scale(0.8) translateY(40rpx) rotate(0deg); opacity: 0; } 
+  to { transform: scale(1) translateY(0) rotate(var(--rotate, 0deg)); opacity: 1; } 
+}
+.animate-pop-in { 
+  animation: pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; 
+}
 </style>

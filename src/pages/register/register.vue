@@ -300,9 +300,11 @@ const finish = async () => {
     position: absolute; width: 110rpx; height: 110rpx; border-radius: 24rpx; opacity: 0.7; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.1);
     &.main {
       background: linear-gradient(135deg, #6366f1, #a855f7); transform: rotate(15deg); left: 28%;
+      animation: float 4.5s ease-in-out infinite;
     }
     &.floating {
-      background: #a5f3fc; transform: rotate(-20deg); right: 28%; animation: float 3.5s ease-in-out infinite;
+      background: #a5f3fc; transform: rotate(-20deg); right: 28%; 
+      animation: float 3.2s ease-in-out infinite reverse;
     }
   }
   .puzzle-text { font-size: 26rpx; color: #a1a1aa; margin-top: 180rpx; letter-spacing: 4rpx; font-style: italic; font-weight: 300; }

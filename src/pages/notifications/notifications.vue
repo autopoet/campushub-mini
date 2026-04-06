@@ -16,7 +16,8 @@
         <text class="empty-text">暂时还没有收到信号哦</text>
       </view>
 
-      <view v-for="s in signals" :key="s._id" class="signal-card animate-slide-up">
+      <view v-for="(s, index) in signals" :key="s._id" class="signal-card animate-slide-up"
+            :style="{ transform: `rotate(${(index % 2 === 0 ? -0.8 : 0.8)}deg)` }">
         <view class="card-top">
           <image class="sender-avatar" :src="s.senderInfo.avatarUrl" />
           <view class="sender-meta">
@@ -169,7 +170,11 @@ const copy = (val: string, label: string) => {
 const formatTime = (time: any) => {
   if (!time) return '刚刚'
   const date = new Date(time)
-  return `${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}`
+  const M = (date.getMonth() + 1).toString().padStart(2, '0')
+  const D = date.getDate().toString().padStart(2, '0')
+  const h = date.getHours().toString().padStart(2, '0')
+  const m = date.getMinutes().toString().padStart(2, '0')
+  return `${M}-${D} ${h}:${m}`
 }
 
 onMounted(fetchSignals)
