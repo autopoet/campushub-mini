@@ -10,10 +10,18 @@ lerna-debug.log*
 node_modules
 .DS_Store
 dist
+dist-*
+unpackage
 *.local
+
+# WeChat Mini Program
+project.private.config.json
+cloudfunctions/**/node_modules/
+miniprogram_npm/
 
 # Editor directories and files
 .idea
+.vscode
 *.suo
 *.ntvs*
 *.njsproj

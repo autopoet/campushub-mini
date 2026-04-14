@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { CLOUD_ENV_ID } from '../config'
 
 export const useUserStore = defineStore('user', () => {
   const openid = ref('')
@@ -28,7 +29,7 @@ export const useUserStore = defineStore('user', () => {
       const res = await wx.cloud.callFunction({
         name: 'login',
         config: {
-          env: 'cloud1-5gw9rppc5093e077'
+          env: CLOUD_ENV_ID
         }
       })
       const result = res.result as any
