@@ -90,14 +90,21 @@
           </view>
 
           <!-- 戳一戳反馈动效层 -->
-          <view v-if="pokingId === item._id" class="poke-feedback">🖐️</view>
+          <view v-if="pokingId === item._id" class="poke-feedback"></view>
         </view>
       </view>
 
       <!-- 空态展示 -->
-      <view v-if="!loading && teams.length === 0" class="empty-state">
-        <text class="empty-icon">🏜️</text>
-        <text class="empty-text">广场空荡荡，快发布你的第一个学习需求吧</text>
+      <view v-if="loading && teams.length === 0" class="loading-wall-modern">
+        <view class="ios-spinner-large"></view>
+      </view>
+
+      <view v-if="!loading && teams.length === 0" class="empty-state-modern">
+        <view class="empty-icon-styled">
+          <view class="wave-circle"></view>
+          <view class="dot"></view>
+        </view>
+        <text class="empty-text">广场暂无动态，契机由你创造</text>
       </view>
     </scroll-view>
 
@@ -178,7 +185,10 @@
               <image class="pub-avatar" :src="selectedItem.publisherAvatar || defaultAvatar" />
               <view class="pub-text">
                 <text class="pub-name">{{ selectedItem.publisherName || '校友' }}</text>
-                <text class="pub-school">{{ selectedItem.school }}</text>
+                <view class="pub-school-wrap">
+                  <view class="school-dot"></view>
+                  <text class="pub-school">{{ selectedItem.school }}</text>
+                </view>
               </view>
             </view>
           </view>
@@ -187,7 +197,8 @@
         <view class="detail-footer">
           <view class="poke-info">已有 {{ selectedItem.pokesCount || 0 }} 人发出了组队信号</view>
           <button class="mega-poke-btn" @click="handlePoke(selectedItem)">
-            <text>戳他 🖐️</text>
+            <text>戳一戳</text>
+            <view class="btn-glow"></view>
           </button>
           <view class="report-trigger" @click="handleReport(selectedItem)">🚩 违规举报</view>
         </view>
@@ -529,15 +540,17 @@ const handleReport = (item: any) => {
 
   .poke-feedback {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 120rpx; background: rgba(255,255,255,0.4); backdrop-filter: blur(4px);
-    animation: poke-high-five 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    font-size: 120rpx; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+    border: 2rpx solid rgba(255,255,255,0.5); border-radius: 50%; width: 200rpx; height: 200rpx;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    animation: poke-ripple 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   }
 }
 
-@keyframes poke-high-five {
-  0% { transform: scale(0.5); opacity: 0; }
-  30% { transform: scale(1.4); opacity: 1; }
-  100% { transform: scale(1.8) translateY(-40rpx); opacity: 0; }
+@keyframes poke-ripple {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  30% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
 }
 
 .ios-search-section {
@@ -630,6 +643,24 @@ const handleReport = (item: any) => {
 
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+.empty-state-modern {
+  text-align: center; padding: 120rpx 60rpx;
+  .empty-icon-styled {
+    width: 200rpx; height: 200rpx; margin: 0 auto 40rpx; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    .wave-circle { position: absolute; width: 100rpx; height: 100rpx; border: 4rpx solid #e5e7eb; border-radius: 50%; animation: wave-ripple 2s infinite; }
+    .dot { width: 16rpx; height: 16rpx; background: #6366f1; border-radius: 50%; }
+  }
+  .empty-text { font-size: 26rpx; color: #9ca3af; font-weight: 600; letter-spacing: 2rpx; }
+}
+
+@keyframes wave-ripple { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3.5); opacity: 0; } }
+
+.loading-wall-modern {
+  padding: 100rpx 0; display: flex; justify-content: center;
+  .ios-spinner-large { width: 44rpx; height: 44rpx; border: 4rpx solid rgba(0,0,0,0.05); border-top: 4rpx solid #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
+}
+
 .loading-wall { 
   padding: 40rpx; display: flex; flex-direction: column; gap: 40rpx; 
 }
@@ -689,8 +720,12 @@ const handleReport = (item: any) => {
           display: flex; align-items: center; gap: 20rpx;
           .pub-avatar { width: 80rpx; height: 80rpx; border-radius: 50%; }
           .pub-text {
-            .pub-name { font-size: 28rpx; font-weight: bold; display: block; }
-            .pub-school { font-size: 22rpx; color: #666; }
+            .pub-name { font-size: 28rpx; font-weight: bold; display: block; color: #1a1a1a; }
+            .pub-school-wrap {
+              display: flex; align-items: center; gap: 8rpx; margin-top: 4rpx;
+              .school-dot { width: 8rpx; height: 8rpx; border-radius: 50%; background: #6366f1; }
+              .pub-school { font-size: 22rpx; color: #666; font-weight: 500; }
+            }
           }
         }
       }

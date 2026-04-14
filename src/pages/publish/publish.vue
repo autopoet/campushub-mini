@@ -1,4 +1,4 @@
-<template>
+ <template>
   <view class="publish-page">
     <view class="safe-header">
       <view class="title">{{ isEdit ? '编辑学习贴纸' : '发布学习贴纸' }}</view>
