@@ -25,6 +25,10 @@ export const useUserStore = defineStore('user', () => {
   // 这里的 login 只是调用云函数获取 openid
   // 真正的“注册/补全信息”逻辑可以在后续页面完成
   const login = async () => {
+    if (openid.value && isLogin.value) {
+      console.log('[Login] Already logged in, skipping.')
+      return
+    }
     try {
       const res = await wx.cloud.callFunction({
         name: 'login',
@@ -80,13 +84,23 @@ export const useUserStore = defineStore('user', () => {
     try {
       // 2. 上传头像到云存储（如果是临时路径）
       let cloudAvatarUrl = formData.avatarUrl
-      if (formData.avatarUrl.startsWith('http://tmp') || formData.avatarUrl.startsWith('wxfile://')) {
+      if (!formData.avatarUrl.startsWith('cloud://') && !formData.avatarUrl.startsWith('https://')) {
         console.log('[Register] Uploading avatar...')
         const uploadRes = await wx.cloud.uploadFile({
           cloudPath: `avatars/${openid.value}_${Date.now()}.png`,
           filePath: formData.avatarUrl
         })
         cloudAvatarUrl = uploadRes.fileID
+        
+        // Convert cloudID to HTTPS right away for fast loading everywhere
+        try {
+          const tempRes = await wx.cloud.getTempFileURL({ fileList: [cloudAvatarUrl] })
+          if (tempRes.fileList && tempRes.fileList[0].tempFileURL) {
+            cloudAvatarUrl = tempRes.fileList[0].tempFileURL
+          }
+        } catch (err) {
+          console.error('[Register] Failed to convert to HTTPS:', err)
+        }
       }
 
       // 3. 写入数据库

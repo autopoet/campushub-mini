@@ -228,12 +228,21 @@ onLoad(async (options) => {
     fetchOtherUser(openid)
   } else {
     isMe.value = true
-    displayUser.value = userStore.userInfo
-    if (userStore.userInfo) {
-      editForm.nickname = userStore.userInfo.nickname || ''
-      editForm.school = userStore.userInfo.school || ''
-      editForm.bio = userStore.userInfo.bio || ''
-      if (userStore.userInfo.contacts) {
+    
+    // Convert existing cloud:// or wxfile:// to https:// on the fly for fast local caching
+    let uInfo = userStore.userInfo
+    if (uInfo && uInfo.avatarUrl && (uInfo.avatarUrl.startsWith('cloud://') || uInfo.avatarUrl.startsWith('wxfile://'))) {
+      try {
+        const tempRes = await wx.cloud.getTempFileURL({ fileList: [uInfo.avatarUrl] })
+        if (tempRes.fileList[0].tempFileURL) uInfo.avatarUrl = tempRes.fileList[0].tempFileURL
+      } catch(e) {}
+    }
+    displayUser.value = uInfo
+    if (uInfo) {
+      editForm.nickname = uInfo.nickname || ''
+      editForm.school = uInfo.school || ''
+      editForm.bio = uInfo.bio || ''
+      if (uInfo.contacts) {
         // 兼容旧格式或确保结构正确
         const c = userStore.userInfo.contacts
         editForm.contacts = { 
@@ -248,23 +257,52 @@ onLoad(async (options) => {
 })
 
 const fetchOtherUser = async (id: string) => {
-  const db = wx.cloud.database()
-  const userRes = await db.collection('users').where({ _openid: id }).get()
-  if (userRes.data.length > 0) displayUser.value = userRes.data[0]
-  
-  const postsRes = await db.collection('teams').where({ _openid: id }).get()
-  myTeams.value = postsRes.data
+  try {
+    uni.showNavigationBarLoading()
+    const db = wx.cloud.database()
+    const userRes = await db.collection('users').where({ _openid: id }).get()
+    if (userRes.data.length > 0) {
+      const u = userRes.data[0]
+      if (u.avatarUrl && (u.avatarUrl.startsWith('cloud://') || u.avatarUrl.startsWith('wxfile://'))) {
+        try {
+          const tempRes = await wx.cloud.getTempFileURL({ fileList: [u.avatarUrl] })
+          if (tempRes.fileList[0].tempFileURL) u.avatarUrl = tempRes.fileList[0].tempFileURL
+        } catch(e) {}
+      }
+      displayUser.value = u
+    }
+    
+    const postsRes = await db.collection('teams').where({ _openid: id }).get()
+    myTeams.value = postsRes.data
+  } catch (e) {
+    console.error('获取伙伴数据失败', e)
+  } finally {
+    uni.hideNavigationBarLoading()
+  }
 }
 
 const fetchMyData = async () => {
   try {
+    uni.showNavigationBarLoading() // 增加视觉反馈
     const db = wx.cloud.database()
-    const teamsRes = await db.collection('teams').where({ _openid: userStore.openid }).get()
+    const _ = db.command
+    // 使用 '{openid}' 宏更稳定
+    const teamsRes = await db.collection('teams').where({ _openid: '{openid}' }).get()
     myTeams.value = teamsRes.data
-    const pokesRes = await db.collection('pokes').where({ senderId: userStore.openid }).get()
+    
+    // 组队记录需要包含发出和收到的
+    const pokesRes = await db.collection('pokes').where(
+      _.or([
+        { senderId: userStore.openid },
+        { receiverId: userStore.openid }
+      ])
+    ).get()
     myPokes.value = pokesRes.data
   } catch (e) {
     console.error('获取个人数据失败', e)
+    uni.showToast({ title: '数据加载弱', icon: 'none' })
+  } finally {
+    uni.hideNavigationBarLoading()
   }
 }
 
