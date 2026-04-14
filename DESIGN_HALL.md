@@ -1,6 +1,6 @@
 # CampusHub Mini: Academic Buddy Spec
 
-## 学习搭子匹配大厅设计指南 (V4.0 - 伙伴版)
+## 学习搭子匹配大厅设计指南 (V5.0 - Premium Minimalist)
 
 ### 1. 核心视觉哲学 (Aesthetics & Inclusivity)
 
@@ -62,3 +62,25 @@
 - **名片完整度锁定 (Profile-First Policy)**：
   - 核心操作（发布、投递、回应）均会触发 `isProfileComplete` 校验。
   - 强制要求用户具备“昵称 + 学校 + 社交联络方式”，从底层构建高素质的学习社区。
+### 8. 极简高级感视觉规范 (Premium Visual Standards - V5.0)
+
+针对 V5.0 版本，项目从“功能优先”全面向“审美先行”转型，旨在打造一款具备 iOS 原生质感的精品校园应用。
+
+- **去 AI 化 (De-AIify Philosophy)**：
+  - **禁忌**：全应用禁止使用 Generic Emoji（如 🚩, 🖐️, ⚙️, 📁）作为核心 UI 图标，避免产生“AI 快速生成工具”的廉价感。
+  - **替代**：统一使用**纯 CSS 矢量绘图**（线条、点、几何图形）来表达状态。
+- **现代流体感按钮 (Fluid Interaction)**：
+  - **视觉**：采用高饱和度深色渐变（如石墨黑至碳灰），辅助 135度 `linear-gradient`。
+  - **动效**：按钮内部集成 `shimmer` 扫光动画，模拟金属或液态表面的光影流转。
+  - **触感**：点击时配合 `0.97` 的缩放反馈，赋予数字化按钮以物理实体的阻尼感。
+- **磨砂玻璃体系 (Frosted Glass / Glassmorphism)**：
+  - **Header 规范**：页头采用 `backdrop-filter: blur(20px)`，配合 `rgba(255, 255, 255, 0.94)` 的微透背景，实现跨层级的深度感。
+  - **卡片秩序**：不再使用花哨的背景色，回归 **Snow White (纯白)** 与 **Super Round (40rpx+)** 的黄金组合，通过 `box-shadow: 0 8rpx 30rpx rgba(0,0,0,0.02)` 营造悬浮美感。
+- **呼吸感指示灯 (Pulse Indicators)**：
+  - 弃用文字标签作为唯一状态说明，引入**多色呼吸灯 (Pulse Dot)** 系统：
+    - `Indigo (#6366f1)`：信号发射中/等待中。
+    - `Teal (#10b981)`：信号配对成功/互通中。
+    - `Gray (#d1d5db)`：信号关闭/历史记录。
+- **微距排版 (Micro-Typography)**：
+  - 增加字段间的 `letter-spacing` (1rpx - 2rpx)，确保在小屏幕设备上依然保持呼吸感。
+  - 强调文字的 `font-weight: 800-900` 与 `font-size: 20-52rpx` 的极端对比，形成强烈的层级视觉引导。
