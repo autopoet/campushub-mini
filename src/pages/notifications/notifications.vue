@@ -146,6 +146,8 @@ const menuTabs = [
   { id: 'sent', label: '我发出的' }
 ]
 
+type SignalStatus = 'pending' | 'accepted' | 'rejected'
+
 interface Signal {
   _id: string;
   senderId: string;
@@ -196,12 +198,10 @@ onMounted(() => {
   fetchSignals()
 })
 
-type SignalStatus = 'pending' | 'accepted' | 'ignored'
-
 const statusMap: Record<SignalStatus, string> = {
   pending: '等待处理',
   accepted: '信号对等',
-  ignored: '已关闭'
+  rejected: '已关闭'
 }
 
 const displaySignals = computed(() => {
@@ -288,7 +288,7 @@ const handleIgnore = async (s: any) => {
             data: { action: 'ignore', id: s._id }
           }) as any
           if (cloudRes.result && cloudRes.result.success !== false) {
-            s.status = 'ignored'
+            s.status = 'rejected'
             uni.showToast({ title: '已标记' })
           }
         } catch (e: any) {}
@@ -440,7 +440,7 @@ const formatTime = (time: any) => {
     background: linear-gradient(to bottom right, #ffffff, #fcfdff);
     &::after { content: ''; position: absolute; top: 0; right: 0; width: 100rpx; height: 100rpx; background: radial-gradient(circle at top right, rgba(99,102,241,0.06), transparent); }
   }
-  &.ignored { opacity: 0.5; filter: grayscale(1); .indicator-dot { background: #d1d5db; opacity: 0.5; } }
+  &.rejected { opacity: 0.5; filter: grayscale(1); .indicator-dot { background: #d1d5db; opacity: 0.5; } }
 
   .card-top {
     display: flex; align-items: center; margin-bottom: 40rpx;
