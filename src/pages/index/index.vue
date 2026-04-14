@@ -335,6 +335,30 @@ const fetchTeams = async () => {
       query = query.where({ content: db.RegExp({ regexp: searchKeyword.value, options: 'i' }) })
     }
     const { data } = await query.orderBy('createTime', 'desc').limit(20).get()
+    
+    // Convert legacy cloud:// avatars dynamically to https://
+    const cloudIds = new Set<string>()
+    data.forEach((item: any) => {
+      if (item.publisherAvatar && item.publisherAvatar.startsWith('cloud://')) {
+        cloudIds.add(item.publisherAvatar)
+      }
+    })
+    
+    if (cloudIds.size > 0) {
+      try {
+        const tempRes = await wx.cloud.getTempFileURL({ fileList: Array.from(cloudIds) })
+        const urlMap: Record<string, string> = {}
+        tempRes.fileList.forEach(file => { if (file.tempFileURL) urlMap[file.fileID] = file.tempFileURL })
+        data.forEach((item: any) => {
+          if (item.publisherAvatar && urlMap[item.publisherAvatar]) {
+            item.publisherAvatar = urlMap[item.publisherAvatar]
+          }
+        })
+      } catch (err) {
+         console.warn('Failed to convert legacy cloud avatars', err)
+      }
+    }
+
     teams.value = data
   } catch (e) {
     console.error('获取广场数据失败', e)
