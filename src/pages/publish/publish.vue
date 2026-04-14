@@ -1,8 +1,8 @@
  <template>
   <view class="publish-page">
-    <view class="safe-header">
-      <view class="title">{{ isEdit ? '编辑学习贴纸' : '发布学习贴纸' }}</view>
-      <view class="subtitle">寻找志同道合的学习伙伴</view>
+    <view class="ios-header-glass">
+      <view class="title">{{ isEdit ? '编辑贴纸' : '发布信号' }}</view>
+      <view class="subtitle">让全校看见你的学习主张</view>
     </view>
 
     <!-- 便利贴预览区 -->
@@ -47,8 +47,9 @@
       </view>
 
       <view class="action-zone">
-        <button class="push-btn" :loading="submitting" @click="handlePublish">
-          {{ submitting ? '安全扫描中...' : (isEdit ? '更新贴纸' : '正式贴出') }}
+        <button class="push-btn-fluid" :loading="submitting" @click="handlePublish">
+          <text>{{ submitting ? '安全扫描中...' : (isEdit ? '保存修改' : '立即贴出') }}</text>
+          <view v-if="!submitting" class="btn-glow-shimmer"></view>
         </button>
         <view class="back-text" @click="goBack">返回广场</view>
         
@@ -195,10 +196,10 @@ onLoad(async (options) => {
 .publish-page {
   min-height: 100vh; background: #ffffff; padding: 100rpx 48rpx;
 }
-.safe-header {
-  margin-bottom: 60rpx;
-  .title { font-size: 48rpx; font-weight: 900; color: #1a1a1a; letter-spacing: 2rpx; }
-  .subtitle { font-size: 26rpx; color: #9ca3af; margin-top: 15rpx; }
+.ios-header-glass {
+  margin-bottom: 70rpx; padding-top: 40rpx;
+  .title { font-size: 52rpx; font-weight: 900; color: #1a1a1a; letter-spacing: 2rpx; }
+  .subtitle { font-size: 26rpx; color: #9ca3af; margin-top: 15rpx; font-weight: 600; }
 }
 .preview-area {
   display: flex; justify-content: center; margin-bottom: 70rpx;
@@ -238,8 +239,26 @@ onLoad(async (options) => {
 }
 .action-zone {
   margin-top: 100rpx; text-align: center;
-  .push-btn { background: #1a1a1a; color: #fff; border-radius: 30rpx; font-weight: bold; font-size: 32rpx; padding: 20rpx 0; box-shadow: 0 25rpx 50rpx rgba(0,0,0,0.15); }
-  .back-text { margin-top: 50rpx; font-size: 26rpx; color: #9ca3af; }
+  .push-btn-fluid { 
+    background: linear-gradient(135deg, #111 0%, #333 100%); color: #fff; border-radius: 36rpx; 
+    height: 110rpx; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 32rpx; box-shadow: 0 30rpx 60rpx rgba(0,0,0,0.15);
+    position: relative; overflow: hidden;
+    
+    .btn-glow-shimmer {
+      position: absolute; inset: 0; 
+      background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+      transform: translateX(-100%); animation: fluid-shimmer 3s infinite;
+    }
+
+    &:active { transform: scale(0.97) translateY(4rpx); }
+  }
+  .back-text { margin-top: 50rpx; font-size: 26rpx; color: #9ca3af; font-weight: 800; text-decoration: underline; }
+  
+  @keyframes fluid-shimmer {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+  }
   
   .compliance-footer {
     margin-top: 60rpx; display: flex; align-items: center; justify-content: center; gap: 10rpx;

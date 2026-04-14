@@ -111,7 +111,9 @@
     <!-- 悬浮按钮组 -->
     <view class="fab-group">
       <view class="fab-btn msg-btn" @click="goToNotifications">
-        <text class="msg-icon">💬</text>
+        <view class="msg-dot-icon">
+          <view class="dot"></view><view class="dot"></view>
+        </view>
         <view class="badge" v-if="hasNewSignals"></view>
       </view>
       <view class="fab-btn publish-btn" @click="goToPublish">
@@ -122,8 +124,8 @@
     <!-- 注册强制拦截层 -->
     <view v-if="!authLoading && !userStore.isRegistered" class="auth-mask">
       <view class="auth-card">
-        <text class="auth-title">👋 欢迎加入学习搭子</text>
-        <text class="auth-desc">你需要先完善学习名片才能查看搭子广场</text>
+        <text class="auth-title">加入学习搭子</text>
+        <text class="auth-desc">完善学习名片，开启伙伴发现之旅</text>
         <button class="auth-btn" @click="goToRegister">去完善名片</button>
       </view>
     </view>
@@ -200,7 +202,7 @@
             <text>戳一戳</text>
             <view class="btn-glow"></view>
           </button>
-          <view class="report-trigger" @click="handleReport(selectedItem)">🚩 违规举报</view>
+          <view class="report-trigger" @click="handleReport(selectedItem)">违规举报</view>
         </view>
       </view>
     </view>
@@ -614,7 +616,10 @@ const handleReport = (item: any) => {
     
     &.msg-btn { 
       background: #fff; border: 1rpx solid rgba(0,0,0,0.05); position: relative;
-      .msg-icon { font-size: 40rpx; }
+      .msg-dot-icon {
+        display: flex; gap: 6rpx;
+        .dot { width: 10rpx; height: 10rpx; background: #6366f1; border-radius: 50%; }
+      }
       .badge { position: absolute; top: 0; right: 0; width: 20rpx; height: 20rpx; background: #ef4444; border-radius: 50%; border: 4rpx solid #fff; }
     }
     &.publish-btn {

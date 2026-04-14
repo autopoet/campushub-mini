@@ -17,8 +17,8 @@
     <view class="profile-card animate-slide-up">
       <view class="avatar-box">
         <image class="avatar" :src="displayUser.avatarUrl || defaultAvatar" />
-        <view v-if="isMe" class="edit-badge" @click="showEdit = true">
-          <text class="gear-emoji">⚙️</text>
+        <view v-if="isMe" class="edit-badge-minimal" @click="showEdit = true">
+          <view class="gear-icon-css"></view>
         </view>
       </view>
       
@@ -78,8 +78,8 @@
               <text class="target-title">针对：{{ item.targetTeamContent }}</text>
               <text :class="['status-tag', item.status]">{{ statusMap[item.status] }}</text>
             </view>
-            <view v-if="item.status === 'accepted'" class="contact-box-premium">
-              <view class="contact-header">🎉 成功互通！点击复制</view>
+            <view v-if="item.status === 'accepted'" class="contact-box-modern">
+               <view class="contact-header">信号已配对 · 现可查看联系方式</view>
               <view class="contact-items">
                 <view v-if="getContacts(item).wechat" class="c-tag" @click="copy(getContacts(item).wechat)">微信: {{ getContacts(item).wechat }}</view>
                 <view v-if="getContacts(item).phone" class="c-tag" @click="copy(getContacts(item).phone)">手机: {{ getContacts(item).phone }}</view>
@@ -90,9 +90,9 @@
         </view>
 
         <!-- 空状态 -->
-        <view v-if="getListData.length === 0" class="empty-box">
-          <text class="empty-icon">📂</text>
-          <text class="empty-text">这里什么都没有哦</text>
+        <view v-if="getListData.length === 0" class="empty-box-styled">
+          <view class="empty-dot-icon"></view>
+          <text class="empty-text">这里还没有任何信号记录</text>
         </view>
       </scroll-view>
     </view>
@@ -382,12 +382,12 @@ const getContacts = (item: any) => {
   
   .avatar-box {
     position: absolute; top: -80rpx; left: 50%; transform: translateX(-50%);
-    .avatar { width: 160rpx; height: 160rpx; border-radius: 50%; border: 8rpx solid #fff; box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.1); }
-    .edit-badge { 
-      position: absolute; bottom: 0; right: 0; background: #fff; width: 60rpx; height: 60rpx; 
+    .avatar { width: 160rpx; height: 160rpx; border-radius: 56rpx; border: 8rpx solid #fff; box-shadow: 0 10rpx 40rpx rgba(0,0,0,0.1); }
+    .edit-badge-minimal { 
+      position: absolute; bottom: -10rpx; right: -10rpx; background: #fff; width: 64rpx; height: 64rpx; 
       border-radius: 20rpx; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.1); border: 2rpx solid #6366f1;
-      .gear-emoji { font-size: 32rpx; line-height: 1; }
+      box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.1); border: 2rpx solid #6366f1;
+      .gear-icon-css { width: 28rpx; height: 28rpx; border: 4rpx solid #6366f1; border-radius: 50%; position: relative; &::after { content: ''; position: absolute; inset: -4rpx; border: 4rpx dashed #6366f1; border-radius: 50%; opacity: 0.5; } }
     }
   }
 
@@ -523,7 +523,11 @@ const getContacts = (item: any) => {
   }
 }
 
-.empty-box { text-align: center; padding-top: 100rpx; .empty-icon { font-size: 80rpx; display: block; margin-bottom: 20rpx; } .empty-text { font-size: 24rpx; color: #999; } }
+.empty-box-styled { 
+  text-align: center; padding-top: 150rpx; 
+  .empty-dot-icon { width: 12rpx; height: 12rpx; background: #e5e7eb; border-radius: 50%; margin: 0 auto 30rpx; box-shadow: 0 0 20rpx #e5e7eb; }
+  .empty-text { font-size: 24rpx; color: #9ca3af; font-weight: 600; letter-spacing: 1rpx; } 
+}
 
 .edit-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(10rpx); z-index: 2000;

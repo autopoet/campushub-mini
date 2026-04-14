@@ -300,6 +300,7 @@ const handleIgnore = async (s: any) => {
 const getContacts = (s: any) => {
   const raw = activeTab.value === 'received' ? s.senderInfo.contacts : s.receiverContacts;
   if (!raw) return {};
+  if (typeof raw === 'string') return { wechat: raw }; // Restore legacy string format compatibility
   return raw;
 }
 
@@ -439,7 +440,7 @@ const formatTime = (time: any) => {
     background: linear-gradient(to bottom right, #ffffff, #fcfdff);
     &::after { content: ''; position: absolute; top: 0; right: 0; width: 100rpx; height: 100rpx; background: radial-gradient(circle at top right, rgba(99,102,241,0.06), transparent); }
   }
-  &.ignored { opacity: 0.5; filter: grayscale(1); }
+  &.ignored { opacity: 0.5; filter: grayscale(1); .indicator-dot { background: #d1d5db; opacity: 0.5; } }
 
   .card-top {
     display: flex; align-items: center; margin-bottom: 40rpx;
