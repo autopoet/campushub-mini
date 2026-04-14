@@ -105,8 +105,8 @@
             </view>
             <view class="contact-grid">
               <view v-for="(val, key) in getContacts(s)" :key="key" class="contact-panel-item">
-                <view v-if="val" class="c-item-inner" @click="copy(val, key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ')">
-                  <text class="c-label">{{ key === 'wechat' ? '微信' : key === 'phone' ? '手机' : 'QQ' }}</text>
+                <view v-if="val" class="c-item-inner" @click="copy(val as string, String(key) === 'wechat' ? '微信' : String(key) === 'phone' ? '手机' : 'QQ')">
+                  <text class="c-label">{{ String(key) === 'wechat' ? '微信' : String(key) === 'phone' ? '手机' : 'QQ' }}</text>
                   <text class="c-val">{{ val }}</text>
                   <view class="copy-hint">复制</view>
                 </view>
@@ -183,8 +183,8 @@ const goBack = () => {
 const calculateHeaderHeight = () => {
   nextTick(() => {
     const query = uni.createSelectorQuery()
-    query.select('#pageHeader').boundingClientRect(data => {
-      if (data) {
+    query.select('#pageHeader').boundingClientRect((data: any) => {
+      if (data && data.height) {
         headerTotalHeight.value = data.height
       }
     }).exec()
