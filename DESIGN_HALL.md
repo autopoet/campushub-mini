@@ -84,3 +84,20 @@
 - **微距排版 (Micro-Typography)**：
   - 增加字段间的 `letter-spacing` (1rpx - 2rpx)，确保在小屏幕设备上依然保持呼吸感。
   - 强调文字的 `font-weight: 800-900` 与 `font-size: 20-52rpx` 的极端对比，形成强烈的层级视觉引导。
+
+### 9. 疑难杂症与核心 Bug 修复总结 (V5.0)
+
+在 V5.0 实施过程中，我们遭遇了一系列与微信小程序底层架构、TypeScript 强推导以及云开发权限相关的复杂 Bug，现总结经验如下：
+
+- **云存储头像跨域/懒加载瘫痪 (Invalid Avatar Loading)**：
+  - **症状**：用户能够上传头像，但在广场页 (`index.vue`) 和个人中心，经常出现“看不见别人的头像”或“自身头像加载极慢”的问题。
+  - **根本原因**：`wx.chooseAvatar` 返回的本地临时地址 (`wxfile://`) 和未显式转换的云 ID (`cloud://`) 在跨设备时无法直接使用，或在列表渲染中解析极慢。
+  - **规避方案**：在 `user.ts` (注册逻辑) 以及各页面列表数据获取后，增加**拦截转换层**。使用 `wx.cloud.getTempFileURL` 将旧的或上传失败的路径**全量热转换为外部 HTTPS 协议**，彻底解决加载耗时、闪烁及不出图的问题。
+- **WebView 页面注册假死 (Vue-TSC Syntax Panic)**：
+  - **症状**：所有页面交互按钮全部失效，控制台抛出 `Page "pages/index/index" has not been registered yet` 与 `timeout`。
+  - **根本原因**：在修复 UI 时引入了 Vue 模板中隐式的 TypeScript 类型对比错误 (`val, key in Record`，其中 `key` 被推导为 `number|string` 与固定的 `string` 对比导致 strict check 不通过)。这个轻微的 TS Error 直接干碎了 Vite 的微信小程序产物，导致页面挂载失败。
+  - **规避方案**：在 `v-for` 对象遍历和原生 `boundingClientRect` 参数读取时，务必使用显式的类型断言 (Type Assertion)，例如 `String(key)` 或 `(data as any)`，保障编译链路的安全。
+- **自查询返回 0 数据与宏陷阱 (The `{openid}` Antipattern in Frontend)**：
+  - **症状**：个人中心明明发布过帖子，但在拉取自己的 `teams` 时总显示发布量为 0。
+  - **根本原因**：为了所谓的权限安全，将前端查询的 `_openid: userStore.openid` 替换为了微信云开发的变量宏 `_openid: '{openid}'`。但**前端 JS SDK 处理查询字典时不支持宏置换**，导致进行了字面量 `"{openid}"` 的死板查库。
+  - **规避方案**：任何只在前端（小程序侧）发起的 `db.collection.where`，如果需要绑定唯一用户，必须注入运行时的真实实体 ID 或显式解构的数据。绝不在前端 Payload 中混用云数据库的安全规则宏。

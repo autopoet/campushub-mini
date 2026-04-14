@@ -286,8 +286,8 @@ const fetchMyData = async () => {
     uni.showNavigationBarLoading() // 增加视觉反馈
     const db = wx.cloud.database()
     const _ = db.command
-    // 使用 '{openid}' 宏更稳定
-    const teamsRes = await db.collection('teams').where({ _openid: '{openid}' }).get()
+    // 修复：取消宏，直接传入真实记录的 openid
+    const teamsRes = await db.collection('teams').where({ _openid: userStore.openid }).get()
     myTeams.value = teamsRes.data
     
     // 组队记录需要包含发出和收到的
